@@ -52,9 +52,15 @@ function WareModal({ product, onClose }: { product: { id: number; name: string; 
 
   const { data: keys, refetch: refetchKeys } = trpc.seller.getProductKeys.useQuery({ productId: product.id });
   const { data: files, refetch: refetchFiles } = trpc.seller.getProductFiles.useQuery({ productId: product.id });
-  const addKeys = trpc.seller.addLicenseKeys.useMutation({ onSuccess: () => { setNewKeys(""); refetchKeys(); } });
+  const addKeys = trpc.seller.addLicenseKeys.useMutation({
+    onSuccess: () => { setNewKeys(""); refetchKeys(); },
+    onError: (e) => alert("Fehler: " + e.message),
+  });
   const deleteKey = trpc.seller.deleteKey.useMutation({ onSuccess: () => refetchKeys() });
-  const addFile = trpc.seller.addProductFile.useMutation({ onSuccess: () => { setNewFileName(""); setNewFileUrl(""); refetchFiles(); } });
+  const addFile = trpc.seller.addProductFile.useMutation({
+    onSuccess: () => { setNewFileName(""); setNewFileUrl(""); refetchFiles(); },
+    onError: (e) => alert("Fehler: " + e.message),
+  });
   const deleteFile = trpc.seller.deleteProductFile.useMutation({ onSuccess: () => refetchFiles() });
 
   const handleAddKeys = () => {

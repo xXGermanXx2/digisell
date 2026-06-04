@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { eq, and, desc, sql, gte, ne } from "drizzle-orm";
-import { createRouter, authedQuery } from "./middleware";
+import { createRouter, authedQuery, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import {
   shops,
@@ -122,9 +122,10 @@ export const sellerRouter = createRouter({
 
   // ── Slug-Verfügbarkeit prüfen ─────────────────────────────────────────────────
 
-  checkSlug: authedQuery
+  checkSlug: publicQuery
     .input(z.object({ slug: z.string() }))
     .query(async ({ input }) => {
+      const db = getDb();
       const [existing] = await db
         .select({ id: shops.id })
         .from(shops)
@@ -519,7 +520,7 @@ export const sellerRouter = createRouter({
 
   // ── Öffentliche Shop-Seite ────────────────────────────────────────────────────
 
-  getPublicShop: authedQuery
+  getPublicShop: publicQuery
     .input(z.object({ slug: z.string() }))
     .query(async ({ input }) => {
     const db = getDb();
