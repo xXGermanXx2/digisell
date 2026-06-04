@@ -10,6 +10,7 @@ import {
   tickets,
   users,
   licenseKeys,
+  productFiles,
   orderItems,
 } from "@db/schema";
 
@@ -394,6 +395,120 @@ export const sellerRouter = createRouter({
       );
 
       return { success: true, added: input.keys.length };
+    }),
+
+  // ── Lizenzkeys abrufen ────────────────────────────────────────────────────────
+
+  getProductKeys: authedQuery
+    .input(z.object({ productId: z.number().int().positive() }))
+    .query(async ({ ctx, input }) => {
+    const db = getDb();
+      const [product] = await db
+        .select({ id: products.id })
+        .from(products)
+        .where(and(eq(products.id, input.productId), eq(products.sellerId, ctx.user.id)))
+        .limit(1);
+      if (!product) throw new Error("Produkt nicht gefunden.");
+      return db.select().from(licenseKeys).where(eq(licenseKeys.productId, input.productId)).orderBy(desc(licenseKeys.createdAt));
+    }),
+
+  // ── Lizenzkey löschen ─────────────────────────────────────────────────────────
+
+  deleteKey: authedQuery
+    .input(z.object({ keyId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+    const db = getDb();
+      const [keyRow] = await db
+        .select({ id: licenseKeys.id, productId: licenseKeys.productId })
+        .from(licenseKeys)
+        .where(eq(licenseKeys.id, input.keyId))
+        .limit(1);
+      if (!keyRow) throw new Error("Key nicht gefunden.");
+      const [product] = await db
+        .select({ id: products.id })
+        .from(products)
+        .where(and(eq(products.id, keyRow.productId), eq(products.sellerId, ctx.user.id)))
+        .limit(1);
+      if (!product) throw new Error("Kein Zugriff.");
+      await db.delete(licenseKeys).where(eq(licenseKeys.id, input.keyId));
+      return { success: true };
+    }),
+
+  // ── Produktdatei hinzufügen ───────────────────────────────────────────────────
+
+  addProductFile: authedQuery
+    .input(z.object({
+      productId: z.number().int().positive(),
+      name: z.string().min(1),
+      url: z.string().url(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+    const db = getDb();
+      const [product] = await db
+        .select({ id: products.id })
+        .from(products)
+        .where(and(eq(products.id, input.productId), eq(products.sellerId, ctx.user.id)))
+        .limit(1);
+      if (!product) throw new Error("Produkt nicht gefunden.");
+      await db.insert(productFiles).values({ productId: input.productId, name: input.name, url: input.url });
+      return { success: true };
+    }),
+
+  // ── Produktdateien abrufen ────────────────────────────────────────────────────
+
+  getProductFiles: authedQuery
+    .input(z.object({ productId: z.number().int().positive() }))
+    .query(async ({ ctx, input }) => {
+    const db = getDb();
+      const [product] = await db
+        .select({ id: products.id })
+        .from(products)
+        .where(and(eq(products.id, input.productId), eq(products.sellerId, ctx.user.id)))
+        .limit(1);
+      if (!product) throw new Error("Produkt nicht gefunden.");
+      return db.select().from(productFiles).where(eq(productFiles.productId, input.productId));
+    }),
+
+  // ── Produktdatei löschen ──────────────────────────────────────────────────────
+
+  deleteProductFile: authedQuery
+    .input(z.object({ fileId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+    const db = getDb();
+      const [file] = await db
+        .select({ id: productFiles.id, productId: productFiles.productId })
+        .from(productFiles)
+        .where(eq(productFiles.id, input.fileId))
+        .limit(1);
+      if (!file) throw new Error("Datei nicht gefunden.");
+      const [product] = await db
+        .select({ id: products.id })
+        .from(products)
+        .where(and(eq(products.id, file.productId), eq(products.sellerId, ctx.user.id)))
+        .limit(1);
+      if (!product) throw new Error("Kein Zugriff.");
+      await db.delete(productFiles).where(eq(productFiles.id, input.fileId));
+      return { success: true };
+    }),
+
+  // ── Öffentliche Shop-Seite ────────────────────────────────────────────────────
+
+  getPublicShop: authedQuery
+    .input(z.object({ slug: z.string() }))
+    .query(async ({ input }) => {
+    const db = getDb();
+      const [shop] = await db
+        .select()
+        .from(shops)
+        .where(and(eq(shops.slug, input.slug), eq(shops.status, "active")))
+        .limit(1);
+      if (!shop) return null;
+      const shopProducts = await db
+        .select()
+        .from(products)
+        .where(and(eq(products.sellerId, shop.ownerId), eq(products.status, "active"), eq(products.visibility, "public")))
+        .orderBy(desc(products.createdAt));
+      return { shop, products: shopProducts };
     }),
 
   // ── Bestellungen ─────────────────────────────────────────────────────────────

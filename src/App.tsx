@@ -33,6 +33,7 @@ import AdminLoginLogs from "./pages/AdminLoginLogs";
 import AdminRoles from "./pages/AdminRoles";
 import SellerDashboard from "./pages/SellerDashboard";
 import ShopSetupWizard from "./pages/ShopSetupWizard";
+import StorePage from "./pages/StorePage";
 import NotFound from "./pages/NotFound";
 
 export default function App() {
@@ -59,10 +60,13 @@ export default function App() {
         <Route path="/webhooks" element={<WebhookSettings />} />
         <Route path="/invoice/:orderId" element={<InvoiceView />} />
 
+        {/* Öffentliche Shop-Seiten */}
+        <Route path="/store/:slug" element={<StorePage />} />
+
         {/* Seller Dashboard — für alle angemeldeten Nutzer */}
         <Route path="/seller" element={<SellerDashboard />} />
-        <Route path="/seller/:tab" element={<SellerDashboard />} />
         <Route path="/seller/setup" element={<ShopSetupWizard />} />
+        <Route path="/seller/:tab" element={<SellerDashboard />} />
 
         {/* Admin */}
         <Route path="/admin" element={<AdminDashboard />} />
