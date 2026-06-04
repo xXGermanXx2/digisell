@@ -8,6 +8,7 @@ import {
   products, categories, reviews, tickets, ticketMessages,
   subscriptions, coupons, fraudRules, shopSettings,
   deliveryLogs, licenseKeys, webhooks,
+  shops, reports, loginLogs, adminRoles, moderationLogs,
 } from "@db/schema";
 import { Errors } from "@contracts/errors";
 import { sendEmail } from "./lib/email";
@@ -1032,5 +1033,400 @@ export const adminRouter = createRouter({
         `${o.orderNumber},${o.createdAt?.toISOString()},${o.customerName ?? ""},${o.customerEmail},${o.total},${o.status},${o.paymentMethod}`
       );
       return { csv: [header, ...rows].join("\n"), count: items.length };
+    }),
+
+  // ═══════════════════════════════════════════════════════════
+  // SHOPVERWALTUNG — Admin
+  // ═══════════════════════════════════════════════════════════
+
+  listShops: adminQuery
+    .input(z.object({
+      search: z.string().optional(),
+      status: z.enum(["active", "inactive", "suspended"]).optional(),
+      page: z.number().int().min(1).default(1),
+      limit: z.number().int().min(1).max(100).default(20),
+    }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const offset = (input.page - 1) * input.limit;
+      const conditions: any[] = [];
+      if (input.search) conditions.push(or(like(shops.name, `%${input.search}%`), like(shops.slug, `%${input.search}%`)));
+      if (input.status) conditions.push(eq(shops.status, input.status));
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [items, countResult] = await Promise.all([
+        db.query.shops.findMany({
+          where,
+          with: { owner: true },
+          orderBy: [desc(shops.createdAt)],
+          limit: input.limit,
+          offset,
+        }),
+        db.select({ count: sql<number>`count(*)` }).from(shops).where(where),
+      ]);
+
+      return { items, total: Number(countResult[0]?.count ?? 0), page: input.page, limit: input.limit };
+    }),
+
+  getShop: adminQuery
+    .input(z.object({ id: z.number().int().positive() }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const shop = await db.query.shops.findFirst({
+        where: eq(shops.id, input.id),
+        with: { owner: true },
+      });
+      if (!shop) throw Errors.notFound("Shop nicht gefunden.");
+
+      const [shopProducts, shopOrders, shopRevenue] = await Promise.all([
+        db.select({ count: sql<number>`count(*)` }).from(products).where(eq(products.sellerId, shop.ownerId)),
+        db.select({ count: sql<number>`count(*)` }).from(orders).where(eq(orders.sellerId, shop.ownerId)),
+        db.select({ sum: sql<string>`COALESCE(SUM(total), 0)` }).from(orders)
+          .where(and(eq(orders.sellerId, shop.ownerId), eq(orders.status, "completed"))),
+      ]);
+
+      return {
+        shop,
+        stats: {
+          products: Number(shopProducts[0]?.count ?? 0),
+          orders: Number(shopOrders[0]?.count ?? 0),
+          revenue: Number(shopRevenue[0]?.sum ?? 0),
+        },
+      };
+    }),
+
+  updateShopStatus: adminQuery
+    .input(z.object({
+      id: z.number().int().positive(),
+      status: z.enum(["active", "inactive", "suspended"]),
+      reason: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      await db.update(shops).set({ status: input.status }).where(eq(shops.id, input.id));
+      await db.insert(systemLogs).values({
+        level: "warn", category: "admin",
+        message: `Admin ${ctx.user.id} set shop ${input.id} status to ${input.status}. Reason: ${input.reason ?? "N/A"}`,
+        metadata: { adminId: ctx.user.id, shopId: input.id, status: input.status, reason: input.reason },
+      });
+      return { success: true };
+    }),
+
+  deleteShop: adminQuery
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      await db.delete(shops).where(eq(shops.id, input.id));
+      await db.insert(systemLogs).values({
+        level: "warn", category: "admin",
+        message: `Admin ${ctx.user.id} deleted shop ${input.id}`,
+        metadata: { adminId: ctx.user.id, shopId: input.id },
+      });
+      return { success: true };
+    }),
+
+  // ═══════════════════════════════════════════════════════════
+  // MELDUNGEN & MODERATION
+  // ═══════════════════════════════════════════════════════════
+
+  listReports: adminQuery
+    .input(z.object({
+      status: z.enum(["pending", "reviewed", "resolved", "dismissed"]).optional(),
+      type: z.enum(["product", "user", "review", "shop"]).optional(),
+      page: z.number().int().min(1).default(1),
+      limit: z.number().int().min(1).max(100).default(20),
+    }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const offset = (input.page - 1) * input.limit;
+      const conditions: any[] = [];
+      if (input.status) conditions.push(eq(reports.status, input.status));
+      if (input.type) conditions.push(eq(reports.type, input.type));
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [items, countResult] = await Promise.all([
+        db.query.reports.findMany({
+          where,
+          with: { reporter: true },
+          orderBy: [desc(reports.createdAt)],
+          limit: input.limit,
+          offset,
+        }),
+        db.select({ count: sql<number>`count(*)` }).from(reports).where(where),
+      ]);
+
+      return { items, total: Number(countResult[0]?.count ?? 0), page: input.page, limit: input.limit };
+    }),
+
+  updateReportStatus: adminQuery
+    .input(z.object({
+      id: z.number().int().positive(),
+      status: z.enum(["pending", "reviewed", "resolved", "dismissed"]),
+      note: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      await db.update(reports).set({ status: input.status, reviewNote: input.note, reviewedBy: ctx.user.id, reviewedAt: new Date() })
+        .where(eq(reports.id, input.id));
+      await db.insert(moderationLogs).values({
+        adminId: ctx.user.id,
+        action: `report_${input.status}`,
+        targetType: "report",
+        targetId: input.id,
+        note: input.note,
+      });
+      return { success: true };
+    }),
+
+  createReport: adminQuery
+    .input(z.object({
+      type: z.enum(["product", "user", "review", "shop"]),
+      targetId: z.number().int().positive(),
+      reason: z.string().min(1),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      await db.insert(reports).values({
+        reporterId: ctx.user.id,
+        type: input.type,
+        targetId: input.targetId,
+        reason: input.reason,
+        status: "pending",
+      });
+      return { success: true };
+    }),
+
+  // ═══════════════════════════════════════════════════════════
+  // LOGIN-LOGS — Dedizierte Tabelle
+  // ═══════════════════════════════════════════════════════════
+
+  getLoginLogs: adminQuery
+    .input(z.object({
+      userId: z.number().int().positive().optional(),
+      success: z.boolean().optional(),
+      page: z.number().int().min(1).default(1),
+      limit: z.number().int().min(1).max(100).default(50),
+    }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const offset = (input.page - 1) * input.limit;
+      const conditions: any[] = [];
+      if (input.userId) conditions.push(eq(loginLogs.userId, input.userId));
+      if (input.success !== undefined) conditions.push(eq(loginLogs.success, input.success));
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [items, countResult] = await Promise.all([
+        db.query.loginLogs.findMany({
+          where,
+          with: { user: true },
+          orderBy: [desc(loginLogs.createdAt)],
+          limit: input.limit,
+          offset,
+        }),
+        db.select({ count: sql<number>`count(*)` }).from(loginLogs).where(where),
+      ]);
+
+      return { items, total: Number(countResult[0]?.count ?? 0), page: input.page, limit: input.limit };
+    }),
+
+  // ═══════════════════════════════════════════════════════════
+  // ADMIN-ROLLEN
+  // ═══════════════════════════════════════════════════════════
+
+  listAdminRoles: adminQuery.query(async () => {
+    const db = getDb();
+    return db.query.adminRoles.findMany({ orderBy: [desc(adminRoles.createdAt)] });
+  }),
+
+  createAdminRole: adminQuery
+    .input(z.object({
+      name: z.string().min(1),
+      permissions: z.array(z.string()),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      await db.insert(adminRoles).values({
+        name: input.name,
+        permissions: JSON.stringify(input.permissions),
+        description: input.description,
+        createdBy: ctx.user.id,
+      });
+      await db.insert(systemLogs).values({
+        level: "info", category: "admin",
+        message: `Admin ${ctx.user.id} created role: ${input.name}`,
+        metadata: { adminId: ctx.user.id, roleName: input.name },
+      });
+      return { success: true };
+    }),
+
+  updateAdminRole: adminQuery
+    .input(z.object({
+      id: z.number().int().positive(),
+      name: z.string().optional(),
+      permissions: z.array(z.string()).optional(),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const { id, permissions, ...rest } = input;
+      const data: any = { ...rest };
+      if (permissions) data.permissions = JSON.stringify(permissions);
+      await db.update(adminRoles).set(data).where(eq(adminRoles.id, id));
+      await db.insert(systemLogs).values({
+        level: "info", category: "admin",
+        message: `Admin ${ctx.user.id} updated role ${id}`,
+        metadata: { adminId: ctx.user.id, roleId: id },
+      });
+      return { success: true };
+    }),
+
+  deleteAdminRole: adminQuery
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      await db.delete(adminRoles).where(eq(adminRoles.id, input.id));
+      await db.insert(systemLogs).values({
+        level: "warn", category: "admin",
+        message: `Admin ${ctx.user.id} deleted role ${input.id}`,
+        metadata: { adminId: ctx.user.id, roleId: input.id },
+      });
+      return { success: true };
+    }),
+
+  // ═══════════════════════════════════════════════════════════
+  // MODERATIONS-LOGS
+  // ═══════════════════════════════════════════════════════════
+
+  getModerationLogs: adminQuery
+    .input(z.object({
+      adminId: z.number().int().positive().optional(),
+      targetType: z.string().optional(),
+      page: z.number().int().min(1).default(1),
+      limit: z.number().int().min(1).max(100).default(50),
+    }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const offset = (input.page - 1) * input.limit;
+      const conditions: any[] = [];
+      if (input.adminId) conditions.push(eq(moderationLogs.adminId, input.adminId));
+      if (input.targetType) conditions.push(eq(moderationLogs.targetType, input.targetType));
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const [items, countResult] = await Promise.all([
+        db.query.moderationLogs.findMany({
+          where,
+          with: { admin: true },
+          orderBy: [desc(moderationLogs.createdAt)],
+          limit: input.limit,
+          offset,
+        }),
+        db.select({ count: sql<number>`count(*)` }).from(moderationLogs).where(where),
+      ]);
+
+      return { items, total: Number(countResult[0]?.count ?? 0), page: input.page, limit: input.limit };
+    }),
+
+  // ═══════════════════════════════════════════════════════════
+  // USER-PANEL — Shop-Betreiber-Sicht (für Seller)
+  // ═══════════════════════════════════════════════════════════
+
+  myShopStats: adminQuery.query(async ({ ctx }) => {
+    const db = getDb();
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [myProducts, myOrders, myRevenue, myMonthRevenue, myCustomers] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(products).where(eq(products.sellerId, ctx.user.id)),
+      db.select({ count: sql<number>`count(*)` }).from(orders).where(eq(orders.sellerId, ctx.user.id)),
+      db.select({ sum: sql<string>`COALESCE(SUM(total), 0)` }).from(orders)
+        .where(and(eq(orders.sellerId, ctx.user.id), eq(orders.status, "completed"))),
+      db.select({ sum: sql<string>`COALESCE(SUM(total), 0)` }).from(orders)
+        .where(and(eq(orders.sellerId, ctx.user.id), eq(orders.status, "completed"), gte(orders.createdAt, monthStart))),
+      db.select({ count: sql<number>`count(distinct customer_id)` }).from(orders)
+        .where(and(eq(orders.sellerId, ctx.user.id), ne(orders.customerId, 0))),
+    ]);
+
+    return {
+      products: Number(myProducts[0]?.count ?? 0),
+      orders: Number(myOrders[0]?.count ?? 0),
+      revenueTotal: Number(myRevenue[0]?.sum ?? 0),
+      revenueMonth: Number(myMonthRevenue[0]?.sum ?? 0),
+      customers: Number(myCustomers[0]?.count ?? 0),
+    };
+  }),
+
+  myOrders: adminQuery
+    .input(z.object({
+      status: z.enum(["pending", "processing", "completed", "cancelled", "refunded"]).optional(),
+      page: z.number().int().min(1).default(1),
+      limit: z.number().int().min(1).max(100).default(20),
+    }))
+    .query(async ({ input, ctx }) => {
+      const db = getDb();
+      const offset = (input.page - 1) * input.limit;
+      const conditions: any[] = [eq(orders.sellerId, ctx.user.id)];
+      if (input.status) conditions.push(eq(orders.status, input.status));
+
+      const [items, countResult] = await Promise.all([
+        db.query.orders.findMany({
+          where: and(...conditions),
+          with: { customer: true, items: { with: { product: true } } },
+          orderBy: [desc(orders.createdAt)],
+          limit: input.limit,
+          offset,
+        }),
+        db.select({ count: sql<number>`count(*)` }).from(orders).where(and(...conditions)),
+      ]);
+
+      return { items, total: Number(countResult[0]?.count ?? 0), page: input.page, limit: input.limit };
+    }),
+
+  myCustomers: adminQuery
+    .input(z.object({
+      page: z.number().int().min(1).default(1),
+      limit: z.number().int().min(1).max(100).default(20),
+    }))
+    .query(async ({ input, ctx }) => {
+      const db = getDb();
+      const offset = (input.page - 1) * input.limit;
+
+      const customerIds = await db.selectDistinct({ id: orders.customerId })
+        .from(orders)
+        .where(and(eq(orders.sellerId, ctx.user.id), ne(orders.customerId, 0)))
+        .limit(input.limit)
+        .offset(offset);
+
+      const ids = customerIds.map(c => c.id).filter(Boolean) as number[];
+      if (ids.length === 0) return { items: [], total: 0, page: input.page, limit: input.limit };
+
+      const items = await db.query.users.findMany({
+        where: inArray(users.id, ids),
+      });
+
+      return {
+        items: items.map(({ passwordHash, twoFactorSecret, ...u }) => u),
+        total: ids.length,
+        page: input.page,
+        limit: input.limit,
+      };
+    }),
+
+  myRevenueChart: adminQuery
+    .input(z.object({ days: z.number().int().min(7).max(365).default(30) }))
+    .query(async ({ input, ctx }) => {
+      const db = getDb();
+      const since = new Date();
+      since.setDate(since.getDate() - input.days);
+
+      return db.select({
+        date: sql<string>`DATE(created_at)`,
+        revenue: sql<string>`COALESCE(SUM(total), 0)`,
+        count: sql<number>`count(*)`,
+      })
+        .from(orders)
+        .where(and(eq(orders.sellerId, ctx.user.id), eq(orders.status, "completed"), gte(orders.createdAt, since)))
+        .groupBy(sql`DATE(created_at)`)
+        .orderBy(sql`DATE(created_at)`);
     }),
 });

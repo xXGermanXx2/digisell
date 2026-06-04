@@ -27,6 +27,11 @@ import AdminPaymentLogs from "./pages/AdminPaymentLogs";
 import AdminAffiliate from "./pages/AdminAffiliate";
 import AdminSubscriptions from "./pages/AdminSubscriptions";
 import AdminSystem from "./pages/AdminSystem";
+import AdminShops from "./pages/AdminShops";
+import AdminReports from "./pages/AdminReports";
+import AdminLoginLogs from "./pages/AdminLoginLogs";
+import AdminRoles from "./pages/AdminRoles";
+import SellerPanel from "./pages/SellerPanel";
 import NotFound from "./pages/NotFound";
 
 export default function App() {
@@ -67,6 +72,11 @@ export default function App() {
         <Route path="/admin/affiliate" element={<AdminAffiliate />} />
         <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
         <Route path="/admin/system" element={<AdminSystem />} />
+        <Route path="/admin/shops" element={<AdminShops />} />
+        <Route path="/admin/reports" element={<AdminReports />} />
+        <Route path="/admin/login-logs" element={<AdminLoginLogs />} />
+        <Route path="/admin/roles" element={<AdminRoles />} />
+        <Route path="/seller" element={<SellerPanel />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

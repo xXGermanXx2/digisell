@@ -535,6 +535,102 @@ export const visitorStats = mysqlTable("visitor_stats", {
   dateIdx: uniqueIndex("date_idx").on(t.date),
 }));
 
+// ===================== SHOPS =====================
+export const shops = mysqlTable("shops", {
+  id: serial("id").primaryKey(),
+  ownerId: bigint("owner_id", { mode: "number", unsigned: true }).references(() => users.id, { onDelete: "cascade" }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  description: text("description"),
+  logo: varchar("logo", { length: 500 }),
+  banner: varchar("banner", { length: 500 }),
+  currency: varchar("currency", { length: 3 }).notNull().default("EUR"),
+  status: mysqlEnum("status", ["active", "suspended", "pending"]).notNull().default("active"),
+  totalRevenue: decimal("total_revenue", { precision: 10, scale: 2 }).notNull().default("0"),
+  totalOrders: int("total_orders").notNull().default(0),
+  totalProducts: int("total_products").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+}, (t) => ({
+  slugIdx: index("shop_slug_idx").on(t.slug),
+  ownerIdx: index("shop_owner_idx").on(t.ownerId),
+  statusIdx: index("shop_status_idx").on(t.status),
+}));
+
+// ===================== REPORTS =====================
+export const reports = mysqlTable("reports", {
+  id: serial("id").primaryKey(),
+  reporterId: bigint("reporter_id", { mode: "number", unsigned: true }).references(() => users.id),
+  reporterEmail: varchar("reporter_email", { length: 255 }),
+  targetType: mysqlEnum("target_type", ["user", "shop", "product", "review"]).notNull(),
+  targetId: bigint("target_id", { mode: "number", unsigned: true }).notNull(),
+  reason: mysqlEnum("reason", ["spam", "fraud", "inappropriate", "fake", "other"]).notNull(),
+  description: text("description"),
+  status: mysqlEnum("status", ["pending", "reviewed", "resolved", "dismissed"]).notNull().default("pending"),
+  resolvedBy: bigint("resolved_by", { mode: "number", unsigned: true }).references(() => users.id),
+  resolvedAt: timestamp("resolved_at"),
+  resolution: text("resolution"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => ({
+  targetIdx: index("report_target_idx").on(t.targetType, t.targetId),
+  statusIdx: index("report_status_idx").on(t.status),
+}));
+
+// ===================== LOGIN LOGS =====================
+export const loginLogs = mysqlTable("login_logs", {
+  id: serial("id").primaryKey(),
+  userId: bigint("user_id", { mode: "number", unsigned: true }).references(() => users.id, { onDelete: "cascade" }),
+  email: varchar("email", { length: 255 }),
+  success: boolean("success").notNull().default(false),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: varchar("user_agent", { length: 500 }),
+  country: varchar("country", { length: 2 }),
+  failReason: varchar("fail_reason", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => ({
+  userIdx: index("login_user_idx").on(t.userId),
+  createdAtIdx: index("login_created_idx").on(t.createdAt),
+}));
+
+// ===================== ADMIN ROLES =====================
+export const adminRoles = mysqlTable("admin_roles", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  displayName: varchar("display_name", { length: 255 }).notNull(),
+  description: text("description"),
+  permissions: json("permissions").$type<string[]>().notNull().default([]),
+  isSystem: boolean("is_system").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
+// ===================== USER ROLES (pivot) =====================
+export const userAdminRoles = mysqlTable("user_admin_roles", {
+  id: serial("id").primaryKey(),
+  userId: bigint("user_id", { mode: "number", unsigned: true }).references(() => users.id, { onDelete: "cascade" }).notNull(),
+  roleId: bigint("role_id", { mode: "number", unsigned: true }).references(() => adminRoles.id, { onDelete: "cascade" }).notNull(),
+  assignedBy: bigint("assigned_by", { mode: "number", unsigned: true }).references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => ({
+  userRoleIdx: index("user_role_idx").on(t.userId, t.roleId),
+}));
+
+// ===================== MODERATION LOGS =====================
+export const moderationLogs = mysqlTable("moderation_logs", {
+  id: serial("id").primaryKey(),
+  adminId: bigint("admin_id", { mode: "number", unsigned: true }).references(() => users.id).notNull(),
+  action: varchar("action", { length: 100 }).notNull(),
+  targetType: mysqlEnum("target_type", ["user", "shop", "product", "order", "ticket", "review"]).notNull(),
+  targetId: bigint("target_id", { mode: "number", unsigned: true }).notNull(),
+  reason: text("reason"),
+  metadata: json("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => ({
+  adminIdx: index("mod_admin_idx").on(t.adminId),
+  targetIdx: index("mod_target_idx").on(t.targetType, t.targetId),
+  createdAtIdx: index("mod_created_idx").on(t.createdAt),
+}));
+
 // ===================== TYPE EXPORTS =====================
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -566,3 +662,9 @@ export type PaymentLog = typeof paymentLogs.$inferSelect;
 export type DownloadLog = typeof downloadLogs.$inferSelect;
 export type DeliveryLog = typeof deliveryLogs.$inferSelect;
 export type VisitorStat = typeof visitorStats.$inferSelect;
+export type Shop = typeof shops.$inferSelect;
+export type Report = typeof reports.$inferSelect;
+export type LoginLog = typeof loginLogs.$inferSelect;
+export type AdminRole = typeof adminRoles.$inferSelect;
+export type UserAdminRole = typeof userAdminRoles.$inferSelect;
+export type ModerationLog = typeof moderationLogs.$inferSelect;
