@@ -533,7 +533,7 @@ export const sellerRouter = createRouter({
       const shopProducts = await db
         .select()
         .from(products)
-        .where(and(eq(products.sellerId, shop.ownerId), eq(products.status, "active"), eq(products.visibility, "public")))
+        .where(and(eq(products.sellerId, Number(shop.ownerId)), eq(products.status, "active"), eq(products.visibility, "public")))
         .orderBy(desc(products.createdAt));
       return { shop, products: shopProducts };
     }),
@@ -809,5 +809,40 @@ export const sellerRouter = createRouter({
           count: Number(s.count),
         })),
       };
+    }),
+
+  // ── Öffentliche Produktdetail-Seite ──────────────────────────────────────────
+  getPublicProduct: publicQuery
+    .input(z.object({ shopSlug: z.string(), productSlug: z.string() }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const [shop] = await db
+        .select()
+        .from(shops)
+        .where(and(eq(shops.slug, input.shopSlug), eq(shops.status, "active")))
+        .limit(1);
+      if (!shop) return null;
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(and(
+          eq(products.slug, input.productSlug),
+          eq(products.sellerId, Number(shop.ownerId)),
+          eq(products.status, "active"),
+          eq(products.visibility, "public")
+        ))
+        .limit(1);
+      if (!product) return null;
+      // Verfügbare Keys zählen
+      const [keyCount] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(licenseKeys)
+        .where(and(eq(licenseKeys.productId, product.id), eq(licenseKeys.status, "available")));
+      // Dateien laden
+      const files = await db
+        .select()
+        .from(productFiles)
+        .where(eq(productFiles.productId, product.id));
+      return { shop, product, availableKeys: Number(keyCount?.count ?? 0), files };
     }),
 });

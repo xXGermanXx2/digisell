@@ -34,6 +34,7 @@ import AdminRoles from "./pages/AdminRoles";
 import SellerDashboard from "./pages/SellerDashboard";
 import ShopSetupWizard from "./pages/ShopSetupWizard";
 import StorePage from "./pages/StorePage";
+import StoreProductPage from "./pages/StoreProductPage";
 import NotFound from "./pages/NotFound";
 
 export default function App() {
@@ -62,6 +63,7 @@ export default function App() {
 
         {/* Öffentliche Shop-Seiten */}
         <Route path="/store/:slug" element={<StorePage />} />
+        <Route path="/store/:slug/product/:productSlug" element={<StoreProductPage />} />
 
         {/* Seller Dashboard — für alle angemeldeten Nutzer */}
         <Route path="/seller" element={<SellerDashboard />} />
