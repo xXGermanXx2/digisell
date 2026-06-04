@@ -1,158 +1,193 @@
 import { useState } from "react";
 import { trpc } from "@/providers/trpc";
 import AdminLayout from "@/components/AdminLayout";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Loader2,
-  ShoppingBag,
-  RefreshCw,
-} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Search, MoreVertical, Eye, RefreshCw, Download, ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 
+const statusColors: Record<string, string> = {
+  completed: "bg-green-500/20 text-green-400",
+  pending: "bg-yellow-500/20 text-yellow-400",
+  processing: "bg-blue-500/20 text-blue-400",
+  cancelled: "bg-red-500/20 text-red-400",
+  refunded: "bg-purple-500/20 text-purple-400",
+};
+
+function formatDate(d: any) {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 export default function AdminOrders() {
-  const [statusFilter, setStatusFilter] = useState("all");
   const utils = trpc.useUtils();
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
-  const { data: ordersData, isLoading } = trpc.order.list.useQuery({
-    status: statusFilter as any,
-    limit: 50,
+  const { data, isLoading } = trpc.admin.listOrders.useQuery({
+    search: search || undefined,
+    status: status !== "all" ? status : undefined,
+    page, limit: 20,
   });
 
-  const updateStatus = trpc.order.updateStatus.useMutation({
-    onSuccess: () => {
-      utils.order.list.invalidate();
-      toast.success("Status aktualisiert");
-    },
+  const updateStatus = trpc.admin.updateOrderStatus.useMutation({
+    onSuccess: () => { toast.success("Status aktualisiert"); utils.admin.listOrders.invalidate(); },
   });
-  const refundOrder = trpc.order.refund.useMutation({
-    onSuccess: () => {
-      utils.order.list.invalidate();
-      toast.success("Bestellung erstattet");
-    },
+  const refundOrder = trpc.admin.refundOrder.useMutation({
+    onSuccess: () => { toast.success("Rückerstattung eingeleitet"); utils.admin.listOrders.invalidate(); },
   });
+
+  const totalPages = Math.ceil((data?.total ?? 0) / 20);
 
   return (
     <AdminLayout>
-      <div className="space-y-6 animate-fade-in">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-[#F1F5F9]">Bestellungen</h1>
-            <p className="text-sm text-[#94A3B8] mt-1">Verwalte alle Bestellungen</p>
+      <div className="space-y-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <ShoppingBag className="w-6 h-6 text-indigo-400" />
+            <div>
+              <h1 className="text-xl font-bold text-[#F1F5F9]">Bestellverwaltung</h1>
+              <p className="text-sm text-[#64748B]">{data?.total ?? 0} Bestellungen insgesamt</p>
+            </div>
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-44 bg-[#111827] border-[#2D3748] text-[#F1F5F9]">
-              <SelectValue placeholder="Status-Filter" />
-            </SelectTrigger>
-            <SelectContent className="bg-[#1E293B] border-[#2D3748]">
-              <SelectItem value="all" className="text-[#F1F5F9]">Alle Status</SelectItem>
-              <SelectItem value="pending" className="text-[#F1F5F9]">Ausstehend</SelectItem>
-              <SelectItem value="paid" className="text-[#F1F5F9]">Bezahlt</SelectItem>
-              <SelectItem value="completed" className="text-[#F1F5F9]">Abgeschlossen</SelectItem>
-              <SelectItem value="cancelled" className="text-[#F1F5F9]">Storniert</SelectItem>
-              <SelectItem value="refunded" className="text-[#F1F5F9]">Erstattet</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
-        <div className="bg-[#111827] rounded-xl card-shadow overflow-hidden">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 text-[#6366F1] animate-spin" />
+        <div className="bg-[#111827] rounded-xl border border-[#1E293B] p-4">
+          <div className="flex flex-wrap gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
+              <Input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+                placeholder="Bestellnummer oder E-Mail..."
+                className="pl-9 bg-[#0F172A] border-[#1E293B] text-[#F1F5F9] placeholder:text-[#64748B]" />
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-[#1A2235]">
-                    <th className="text-left text-xs font-medium text-[#64748B] uppercase tracking-wider px-6 py-3">Bestellnr.</th>
-                    <th className="text-left text-xs font-medium text-[#64748B] uppercase tracking-wider px-6 py-3">Kunde</th>
-                    <th className="text-left text-xs font-medium text-[#64748B] uppercase tracking-wider px-6 py-3">Produkte</th>
-                    <th className="text-left text-xs font-medium text-[#64748B] uppercase tracking-wider px-6 py-3">Betrag</th>
-                    <th className="text-left text-xs font-medium text-[#64748B] uppercase tracking-wider px-6 py-3">Methode</th>
-                    <th className="text-left text-xs font-medium text-[#64748B] uppercase tracking-wider px-6 py-3">Status</th>
-                    <th className="text-right text-xs font-medium text-[#64748B] uppercase tracking-wider px-6 py-3">Aktionen</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#1E293B]">
-                  {ordersData?.items?.map((order) => (
-                    <tr key={order.id} className="hover:bg-[#1A2235]/30 transition-colors">
-                      <td className="px-6 py-4 text-sm font-medium text-[#F1F5F9]">{order.orderNumber}</td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="text-sm text-[#F1F5F9]">{order.customerName ?? "Gast"}</p>
-                          <p className="text-xs text-[#64748B]">{order.customerEmail}</p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-[#94A3B8]">{order.items?.length ?? 0} Artikel</td>
-                      <td className="px-6 py-4 text-sm font-semibold text-[#6366F1]">{order.total} &euro;</td>
-                      <td className="px-6 py-4">
-                        <span className="text-xs text-[#94A3B8] uppercase">{order.paymentMethod}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          order.status === "completed" ? "bg-[#22C55E]/10 text-[#22C55E]" :
-                          order.status === "paid" ? "bg-[#3B82F6]/10 text-[#3B82F6]" :
-                          order.status === "pending" ? "bg-[#F59E0B]/10 text-[#F59E0B]" :
-                          order.status === "refunded" ? "bg-[#64748B]/10 text-[#64748B]" :
-                          "bg-[#EF4444]/10 text-[#EF4444]"
-                        }`}>
-                          {order.status === "completed" ? "Abgeschlossen" :
-                           order.status === "paid" ? "Bezahlt" :
-                           order.status === "pending" ? "Ausstehend" :
-                           order.status === "refunded" ? "Erstattet" : "Storniert"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-1">
-                          <Select
-                            value={order.status}
-                            onValueChange={(v) => updateStatus.mutate({ orderId: order.id, status: v as any })}
-                          >
-                            <SelectTrigger className="h-8 w-32 bg-[#1A2235] border-[#2D3748] text-[#F1F5F9] text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-[#1E293B] border-[#2D3748]">
-                              <SelectItem value="pending" className="text-[#F1F5F9] text-xs">Ausstehend</SelectItem>
-                              <SelectItem value="paid" className="text-[#F1F5F9] text-xs">Bezahlt</SelectItem>
-                              <SelectItem value="completed" className="text-[#F1F5F9] text-xs">Abgeschlossen</SelectItem>
-                              <SelectItem value="cancelled" className="text-[#F1F5F9] text-xs">Storniert</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {order.status !== "refunded" && (
-                            <button
-                              onClick={() => {
-                                if (confirm("Bestellung wirklich erstatten?")) {
-                                  refundOrder.mutate({ orderId: order.id });
-                                }
-                              }}
-                              className="p-1.5 rounded-lg hover:bg-[#EF4444]/10 text-[#64748B] hover:text-[#EF4444] transition-colors"
-                              title="Erstatten"
-                            >
-                              <RefreshCw className="w-4 h-4" />
-                            </button>
+            <Select value={status} onValueChange={v => { setStatus(v); setPage(1); }}>
+              <SelectTrigger className="w-40 bg-[#0F172A] border-[#1E293B] text-[#F1F5F9]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[#111827] border-[#1E293B]">
+                <SelectItem value="all">Alle Status</SelectItem>
+                <SelectItem value="pending">Ausstehend</SelectItem>
+                <SelectItem value="processing">In Bearbeitung</SelectItem>
+                <SelectItem value="completed">Abgeschlossen</SelectItem>
+                <SelectItem value="cancelled">Storniert</SelectItem>
+                <SelectItem value="refunded">Erstattet</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-[#1E293B] hover:bg-transparent">
+                  <TableHead className="text-[#64748B]">Bestellnummer</TableHead>
+                  <TableHead className="text-[#64748B]">Kunde</TableHead>
+                  <TableHead className="text-[#64748B]">Betrag</TableHead>
+                  <TableHead className="text-[#64748B]">Status</TableHead>
+                  <TableHead className="text-[#64748B]">Datum</TableHead>
+                  <TableHead className="text-[#64748B] text-right">Aktionen</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-10 text-[#64748B]">Lädt...</TableCell></TableRow>
+                ) : (data?.items ?? []).map((order: any) => (
+                  <TableRow key={order.id} className="border-[#1E293B] hover:bg-[#1A2235]/40">
+                    <TableCell className="text-[#F1F5F9] font-mono text-sm">{order.orderNumber}</TableCell>
+                    <TableCell>
+                      <p className="text-[#F1F5F9] text-sm">{order.customer?.name ?? "Gast"}</p>
+                      <p className="text-[#64748B] text-xs">{order.customerEmail}</p>
+                    </TableCell>
+                    <TableCell className="text-[#F1F5F9] font-medium">{Number(order.total).toFixed(2)}€</TableCell>
+                    <TableCell><Badge className={statusColors[order.status] ?? ""}>{order.status}</Badge></TableCell>
+                    <TableCell className="text-[#94A3B8] text-sm">{formatDate(order.createdAt)}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="ghost" className="text-[#64748B] hover:text-[#F1F5F9] h-8 w-8 p-0">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-[#1A2235] border-[#2D3748] w-48">
+                          <DropdownMenuItem onClick={() => setSelectedOrder(order)} className="text-[#F1F5F9] hover:bg-[#2D3748] cursor-pointer">
+                            <Eye className="w-4 h-4 mr-2" /> Details
+                          </DropdownMenuItem>
+                          {["pending","processing","completed","cancelled"].map(s => (
+                            <DropdownMenuItem key={s} onClick={() => updateStatus.mutate({ id: order.id, status: s })}
+                              className="text-[#94A3B8] hover:bg-[#2D3748] cursor-pointer capitalize">
+                              <RefreshCw className="w-4 h-4 mr-2" /> Status: {s}
+                            </DropdownMenuItem>
+                          ))}
+                          {order.status === "completed" && (
+                            <DropdownMenuItem onClick={() => { if (confirm("Rückerstattung einleiten?")) refundOrder.mutate({ id: order.id }); }}
+                              className="text-purple-400 hover:bg-[#2D3748] cursor-pointer">
+                              <Download className="w-4 h-4 mr-2" /> Rückerstattung
+                            </DropdownMenuItem>
                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {(!ordersData?.items || ordersData.items.length === 0) && (
-                <div className="text-center py-12">
-                  <ShoppingBag className="w-10 h-10 text-[#64748B] mx-auto mb-3" />
-                  <p className="text-sm text-[#64748B]">Keine Bestellungen vorhanden</p>
-                </div>
-              )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {!isLoading && !data?.items?.length && (
+                  <TableRow><TableCell colSpan={6} className="text-center py-10 text-[#64748B]">Keine Bestellungen gefunden</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          {totalPages > 1 && (
+            <div className="px-5 py-3 border-t border-[#1E293B] flex items-center justify-between">
+              <p className="text-sm text-[#64748B]">Seite {page} von {totalPages}</p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="border-[#1E293B] text-[#94A3B8] h-8"><ChevronLeft className="w-4 h-4" /></Button>
+                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="border-[#1E293B] text-[#94A3B8] h-8"><ChevronRight className="w-4 h-4" /></Button>
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Order Detail Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-[#1E293B] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1E293B]">
+              <h2 className="text-lg font-semibold text-[#F1F5F9]">Bestellung {selectedOrder.orderNumber}</h2>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedOrder(null)} className="text-[#64748B]">✕</Button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div><p className="text-[#64748B]">Kunde</p><p className="text-[#F1F5F9]">{selectedOrder.customer?.name ?? "Gast"}</p></div>
+                <div><p className="text-[#64748B]">E-Mail</p><p className="text-[#F1F5F9]">{selectedOrder.customerEmail}</p></div>
+                <div><p className="text-[#64748B]">Betrag</p><p className="text-[#F1F5F9] font-bold">{Number(selectedOrder.total).toFixed(2)}€</p></div>
+                <div><p className="text-[#64748B]">Status</p><Badge className={statusColors[selectedOrder.status]}>{selectedOrder.status}</Badge></div>
+                <div><p className="text-[#64748B]">Datum</p><p className="text-[#F1F5F9]">{formatDate(selectedOrder.createdAt)}</p></div>
+                <div><p className="text-[#64748B]">Zahlungsmethode</p><p className="text-[#F1F5F9] capitalize">{selectedOrder.paymentMethod ?? "—"}</p></div>
+              </div>
+              {selectedOrder.items?.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-[#94A3B8] mb-2">Bestellpositionen</h4>
+                  <div className="space-y-2">
+                    {selectedOrder.items.map((item: any) => (
+                      <div key={item.id} className="flex justify-between bg-[#0F172A] rounded px-4 py-2 text-sm">
+                        <span className="text-[#F1F5F9]">{item.product?.title ?? "Produkt"}</span>
+                        <span className="text-[#94A3B8]">{item.quantity}x {Number(item.price).toFixed(2)}€</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

@@ -13,6 +13,7 @@ import UserSettings from "./pages/UserSettings";
 import UserSubscriptions from "./pages/UserSubscriptions";
 import AffiliateDashboard from "./pages/AffiliateDashboard";
 import WebhookSettings from "./pages/WebhookSettings";
+import InvoiceView from "./pages/InvoiceView";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminProducts from "./pages/AdminProducts";
 import AdminOrders from "./pages/AdminOrders";
@@ -22,6 +23,10 @@ import AdminSettings from "./pages/AdminSettings";
 import AdminTickets from "./pages/AdminTickets";
 import AdminUsers from "./pages/AdminUsers";
 import AdminLogs from "./pages/AdminLogs";
+import AdminPaymentLogs from "./pages/AdminPaymentLogs";
+import AdminAffiliate from "./pages/AdminAffiliate";
+import AdminSubscriptions from "./pages/AdminSubscriptions";
+import AdminSystem from "./pages/AdminSystem";
 import NotFound from "./pages/NotFound";
 
 export default function App() {
@@ -46,6 +51,7 @@ export default function App() {
         <Route path="/subscriptions" element={<UserSubscriptions />} />
         <Route path="/affiliate" element={<AffiliateDashboard />} />
         <Route path="/webhooks" element={<WebhookSettings />} />
+        <Route path="/invoice/:orderId" element={<InvoiceView />} />
 
         {/* Admin */}
         <Route path="/admin" element={<AdminDashboard />} />
@@ -57,6 +63,10 @@ export default function App() {
         <Route path="/admin/tickets" element={<AdminTickets />} />
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/logs" element={<AdminLogs />} />
+        <Route path="/admin/payments" element={<AdminPaymentLogs />} />
+        <Route path="/admin/affiliate" element={<AdminAffiliate />} />
+        <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
+        <Route path="/admin/system" element={<AdminSystem />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

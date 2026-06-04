@@ -32,10 +32,14 @@ export default function Login() {
 
   useEffect(() => { if (user) navigate("/dashboard"); }, [user, navigate]);
 
+  const utils = trpc.useUtils();
+
   const login = trpc.auth.login.useMutation({
     onSuccess: (data: any) => {
       if (data.requiresTwoFactor) { setRequires2FA(true); setError(""); return; }
       if (data.refreshToken) localStorage.setItem("ds_refresh_token", data.refreshToken);
+      // Cache leeren und dann zum Dashboard navigieren
+      utils.auth.me.reset();
       navigate("/dashboard");
     },
     onError: (e: any) => setError(e.message),

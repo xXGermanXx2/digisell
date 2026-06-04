@@ -1,28 +1,24 @@
 import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  LayoutDashboard,
-  Package,
-  ShoppingBag,
-  Users,
-  BarChart3,
-  Settings,
-  Ticket,
-  LogOut,
-  Store,
-  ChevronLeft,
-  Menu,
-  X,
+  LayoutDashboard, Package, ShoppingBag, Users, BarChart3, Settings,
+  Ticket, LogOut, Store, Menu, X, CreditCard, UserCheck, RefreshCw,
+  Activity, Shield, FileText
 } from "lucide-react";
 import { useState } from "react";
 
 const adminNavItems = [
-  { path: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { path: "/admin/users", label: "Nutzer", icon: Users },
   { path: "/admin/products", label: "Produkte", icon: Package },
   { path: "/admin/orders", label: "Bestellungen", icon: ShoppingBag },
-  { path: "/admin/customers", label: "Kunden", icon: Users },
-  { path: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { path: "/admin/payments", label: "Zahlungen", icon: CreditCard },
   { path: "/admin/tickets", label: "Tickets", icon: Ticket },
+  { path: "/admin/affiliate", label: "Affiliates", icon: UserCheck },
+  { path: "/admin/subscriptions", label: "Abonnements", icon: RefreshCw },
+  { path: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { path: "/admin/logs", label: "Logs", icon: FileText },
+  { path: "/admin/system", label: "System", icon: Activity },
   { path: "/admin/settings", label: "Einstellungen", icon: Settings },
 ];
 
@@ -33,123 +29,92 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isAdmin = user?.role === "admin" || user?.role === "seller";
-
-  if (!isAdmin) {
+  if (user && !isAdmin) {
     navigate("/dashboard");
     return null;
   }
 
+  const isActive = (item: { path: string; exact?: boolean }) =>
+    item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
+
+  const NavContent = () => (
+    <>
+      <div className="flex items-center gap-2 h-16 px-4 border-b border-[#1E293B]">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center">
+            <Store className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-lg font-bold bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">DigiSell</span>
+        </Link>
+        <span className="ml-auto text-[10px] font-medium text-[#6366F1] bg-[#6366F1]/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Admin</span>
+      </div>
+      <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
+        {adminNavItems.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item);
+          return (
+            <Link key={item.path} to={item.path}
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                active
+                  ? "bg-[#6366F1]/15 text-[#6366F1] border-l-2 border-[#6366F1]"
+                  : "text-[#94A3B8] hover:bg-[#1A2235] hover:text-[#F1F5F9]"
+              }`}>
+              <Icon className="w-4 h-4 flex-shrink-0" />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="p-3 border-t border-[#1E293B]">
+        <div className="flex items-center gap-3 px-3 py-2 mb-2">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            {((user?.name ?? user?.email ?? "A") as string)[0].toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-[#F1F5F9] truncate">{user?.name ?? "Admin"}</p>
+            <p className="text-xs text-[#64748B] truncate">{user?.email}</p>
+          </div>
+        </div>
+        <button onClick={() => logout()} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#94A3B8] hover:bg-[#1A2235] hover:text-red-400 transition-all">
+          <LogOut className="w-4 h-4" />
+          Abmelden
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-[#0A0E1A] flex">
+      {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 flex-col bg-[#0F172A] border-r border-[#1E293B] fixed h-full z-30">
-        <div className="flex items-center gap-2 h-16 px-4 border-b border-[#1E293B]">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg gradient-bg flex items-center justify-center">
-              <Store className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-lg font-bold gradient-text">DigiSell</span>
-          </Link>
-          <span className="ml-2 text-[10px] font-medium text-[#6366F1] bg-[#6366F1]/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
-            Admin
-          </span>
-        </div>
-
-        <nav className="flex-1 py-4 px-3 space-y-1">
-          {adminNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  isActive
-                    ? "bg-[#6366F1]/15 text-[#6366F1] border-l-2 border-[#6366F1]"
-                    : "text-[#94A3B8] hover:bg-[#1A2235] hover:text-[#F1F5F9]"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="p-3 border-t border-[#1E293B]">
-          <div className="flex items-center gap-3 px-3 py-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold">
-              {user?.name?.[0]?.toUpperCase() || "U"}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-[#F1F5F9] truncate">{user?.name ?? "Admin"}</p>
-              <p className="text-[10px] text-[#64748B]">{user?.role === "admin" ? "Administrator" : "Verk\u00e4ufer"}</p>
-            </div>
-          </div>
-          <div className="flex gap-1">
-            <Link
-              to="/dashboard"
-              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs text-[#94A3B8] hover:bg-[#1A2235] hover:text-[#F1F5F9] transition-colors"
-            >
-              <ChevronLeft className="w-3 h-3" />
-              Shop
-            </Link>
-            <button
-              onClick={logout}
-              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs text-[#94A3B8] hover:bg-[#1A2235] hover:text-[#EF4444] transition-colors"
-            >
-              <LogOut className="w-3 h-3" />
-              Logout
-            </button>
-          </div>
-        </div>
+        <NavContent />
       </aside>
 
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-[#0F172A] border-b border-[#1E293B]">
-        <div className="flex items-center justify-between h-14 px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md gradient-bg flex items-center justify-center">
-              <Store className="w-3.5 h-3.5 text-white" />
-            </div>
-            <span className="text-sm font-bold gradient-text">DigiSell Admin</span>
-          </Link>
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-lg hover:bg-[#1A2235]"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5 text-[#94A3B8]" /> : <Menu className="w-5 h-5 text-[#94A3B8]" />}
+      {/* Mobile Sidebar */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div className="fixed inset-0 bg-black/60" onClick={() => setMobileMenuOpen(false)} />
+          <aside className="relative w-64 flex flex-col bg-[#0F172A] border-r border-[#1E293B] h-full z-50">
+            <NavContent />
+          </aside>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+        {/* Mobile Header */}
+        <header className="lg:hidden flex items-center gap-3 h-14 px-4 bg-[#0F172A] border-b border-[#1E293B] sticky top-0 z-20">
+          <button onClick={() => setMobileMenuOpen(true)} className="text-[#94A3B8] hover:text-[#F1F5F9]">
+            <Menu className="w-5 h-5" />
           </button>
-        </div>
+          <span className="text-base font-bold bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">DigiSell Admin</span>
+        </header>
 
-        {mobileMenuOpen && (
-          <div className="border-t border-[#1E293B] bg-[#0F172A] animate-fade-in">
-            {adminNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-[#6366F1]/15 text-[#6366F1]"
-                      : "text-[#94A3B8] hover:bg-[#1A2235]"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0">
-        <div className="p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 p-4 lg:p-6">
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

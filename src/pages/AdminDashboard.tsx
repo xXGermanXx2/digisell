@@ -1,184 +1,263 @@
 import { trpc } from "@/providers/trpc";
-import AdminLayout from "@/components/AdminLayout";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  TrendingUp,
-  DollarSign,
-  ShoppingCart,
-  Package,
-  Users,
-  ArrowUpRight,
-  ArrowDownRight,
-  Settings,
+  Users, ShoppingBag, Package, Ticket, TrendingUp,
+  DollarSign, Server, RefreshCw, ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
+import {
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer,
+} from "recharts";
+import { useState } from "react";
+import { Link } from "react-router";
+import AdminLayout from "@/components/AdminLayout";
+
+function StatCard({ title, value, sub, icon: Icon, color = "blue" }: {
+  title: string; value: string | number; sub?: string; icon: any; color?: string;
+}) {
+  const colors: Record<string, string> = {
+    blue: "text-blue-400 bg-blue-500/10",
+    green: "text-green-400 bg-green-500/10",
+    purple: "text-purple-400 bg-purple-500/10",
+    orange: "text-orange-400 bg-orange-500/10",
+    red: "text-red-400 bg-red-500/10",
+  };
+  return (
+    <div className="bg-[#111827] rounded-xl p-5 border border-[#1E293B]">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-[#94A3B8]">{title}</p>
+          <p className="text-2xl font-bold text-[#F1F5F9] mt-1">{value}</p>
+          {sub && <p className="text-xs text-[#64748B] mt-1">{sub}</p>}
+        </div>
+        <div className={`p-3 rounded-lg ${colors[color]}`}>
+          <Icon className="w-5 h-5" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatCurrency(val: number) {
+  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(val);
+}
+
+function formatDate(d: string | Date | null | undefined) {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+const statusColors: Record<string, string> = {
+  completed: "bg-green-500/20 text-green-400",
+  pending: "bg-yellow-500/20 text-yellow-400",
+  processing: "bg-blue-500/20 text-blue-400",
+  cancelled: "bg-red-500/20 text-red-400",
+  refunded: "bg-purple-500/20 text-purple-400",
+};
 
 export default function AdminDashboard() {
-  const { data: dashboard, isLoading: dashboardLoading } = trpc.analytics.dashboard.useQuery();
-  const { data: recentOrders } = trpc.order.list.useQuery({ status: "all", limit: 5 });
-  const { data: topProducts } = trpc.analytics.topProducts.useQuery({ limit: 5 });
+  const [chartDays, setChartDays] = useState(30);
+  const { data: stats, isLoading, refetch } = trpc.admin.dashboardStats.useQuery();
+  const { data: revenueChart } = trpc.admin.revenueChart.useQuery({ days: chartDays });
+  const { data: userChart } = trpc.admin.userGrowthChart.useQuery({ days: chartDays });
 
-  const stats = [
-    {
-      label: "Gesamtumsatz",
-      value: dashboard ? `\u20ac${dashboard.totalRevenue.toLocaleString("de-DE", { minimumFractionDigits: 2 })}` : "\u20ac0,00",
-      change: "+12%",
-      up: true,
-      icon: DollarSign,
-      color: "#6366F1",
-    },
-    {
-      label: "Bestellungen",
-      value: dashboard?.totalOrders?.toString() ?? "0",
-      change: "+8%",
-      up: true,
-      icon: ShoppingCart,
-      color: "#8B5CF6",
-    },
-    {
-      label: "Aktive Produkte",
-      value: dashboard?.totalProducts?.toString() ?? "0",
-      change: "+3",
-      up: true,
-      icon: Package,
-      color: "#22C55E",
-    },
-    {
-      label: "Kunden",
-      value: dashboard?.totalCustomers?.toString() ?? "0",
-      change: "+15%",
-      up: true,
-      icon: Users,
-      color: "#F59E0B",
-    },
-  ];
+  if (isLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6366F1]" />
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  const s = stats?.stats;
 
   return (
     <AdminLayout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-[#F1F5F9]">Admin Dashboard</h1>
+            <p className="text-[#94A3B8] text-sm mt-1">Plattformübersicht in Echtzeit</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="border-[#1E293B] text-[#94A3B8]">
+            <RefreshCw className="w-4 h-4 mr-2" /> Aktualisieren
+          </Button>
+        </div>
+
+        {/* Revenue Stats */}
         <div>
-          <h1 className="text-2xl font-bold text-[#F1F5F9]">Dashboard</h1>
-          <p className="text-sm text-[#94A3B8] mt-1">\u00dcbersicht deines Shops</p>
+          <p className="text-xs font-medium text-[#64748B] uppercase tracking-wider mb-3">Umsatz</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard title="Gesamtumsatz" value={formatCurrency(s?.revenueTotal ?? 0)} icon={DollarSign} color="green" />
+            <StatCard title="Heute" value={formatCurrency(s?.revenueToday ?? 0)} sub={`${s?.todayOrders ?? 0} Bestellungen`} icon={TrendingUp} color="blue" />
+            <StatCard title="Diese Woche" value={formatCurrency(s?.revenueWeek ?? 0)} sub={`${s?.weekOrders ?? 0} Bestellungen`} icon={TrendingUp} color="purple" />
+            <StatCard title="Dieser Monat" value={formatCurrency(s?.revenueMonth ?? 0)} sub={`${s?.monthOrders ?? 0} Bestellungen`} icon={TrendingUp} color="orange" />
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {dashboardLoading
-            ? Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-[#111827] rounded-xl card-shadow p-5">
-                  <Skeleton className="w-10 h-10 rounded-lg mb-4 bg-[#1A2235]" />
-                  <Skeleton className="w-24 h-8 mb-2 bg-[#1A2235]" />
-                  <Skeleton className="w-16 h-4 bg-[#1A2235]" />
-                </div>
-              ))
-            : stats.map((stat) => {
-                const Icon = stat.icon;
-                return (
-                  <div
-                    key={stat.label}
-                    className="bg-[#111827] rounded-xl card-shadow p-5 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: `${stat.color}15` }}
-                      >
-                        <Icon className="w-5 h-5" style={{ color: stat.color }} />
-                      </div>
-                      <span
-                        className={`flex items-center gap-0.5 text-xs font-medium ${
-                          stat.up ? "text-[#22C55E]" : "text-[#EF4444]"
-                        }`}
-                      >
-                        {stat.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                        {stat.change}
-                      </span>
-                    </div>
-                    <p className="text-2xl font-bold text-[#F1F5F9] mb-1">{stat.value}</p>
-                    <p className="text-xs text-[#94A3B8]">{stat.label}</p>
-                  </div>
-                );
-              })}
+        {/* Platform Stats */}
+        <div>
+          <p className="text-xs font-medium text-[#64748B] uppercase tracking-wider mb-3">Plattform</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard title="Nutzer gesamt" value={s?.totalUsers ?? 0} sub={`${s?.activeUsers ?? 0} aktiv`} icon={Users} color="blue" />
+            <StatCard title="Produkte" value={s?.totalProducts ?? 0} icon={Package} color="purple" />
+            <StatCard title="Bestellungen" value={s?.totalOrders ?? 0} icon={ShoppingBag} color="orange" />
+            <StatCard title="Tickets" value={s?.totalTickets ?? 0} icon={Ticket} color="red" />
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <div className="bg-[#111827] rounded-xl card-shadow overflow-hidden">
-            <div className="px-6 py-4 border-b border-[#1E293B] flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[#F1F5F9]">Neueste Bestellungen</h2>
-              <span className="text-xs text-[#64748B]">Letzte 5</span>
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-[#111827] rounded-xl border border-[#1E293B] p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold text-[#F1F5F9]">Umsatzverlauf</h2>
+              <div className="flex gap-1">
+                {[7, 30, 90].map(d => (
+                  <button key={d}
+                    className={`px-2 py-1 rounded text-xs font-medium transition-colors ${chartDays === d ? "bg-[#6366F1] text-white" : "text-[#64748B] hover:text-[#F1F5F9]"}`}
+                    onClick={() => setChartDays(d)}>
+                    {d}T
+                  </button>
+                ))}
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={revenueChart ?? []}>
+                <defs>
+                  <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                <XAxis dataKey="date" stroke="#64748B" tick={{ fontSize: 11 }} />
+                <YAxis stroke="#64748B" tick={{ fontSize: 11 }} tickFormatter={v => `${v}€`} />
+                <Tooltip contentStyle={{ backgroundColor: "#111827", border: "1px solid #1E293B", borderRadius: "8px" }} labelStyle={{ color: "#F1F5F9" }} formatter={(v: any) => [`${Number(v).toFixed(2)}€`, "Umsatz"]} />
+                <Area type="monotone" dataKey="revenue" stroke="#6366F1" fill="url(#revGrad)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="bg-[#111827] rounded-xl border border-[#1E293B] p-5">
+            <h2 className="text-base font-semibold text-[#F1F5F9] mb-4">Nutzerwachstum</h2>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={userChart ?? []}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                <XAxis dataKey="date" stroke="#64748B" tick={{ fontSize: 11 }} />
+                <YAxis stroke="#64748B" tick={{ fontSize: 11 }} />
+                <Tooltip contentStyle={{ backgroundColor: "#111827", border: "1px solid #1E293B", borderRadius: "8px" }} labelStyle={{ color: "#F1F5F9" }} formatter={(v: any) => [v, "Neue Nutzer"]} />
+                <Bar dataKey="count" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Last Orders */}
+          <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#1E293B] flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-[#F1F5F9]">Letzte Bestellungen</h2>
+              <Link to="/admin/orders" className="text-xs text-[#6366F1] hover:underline">Alle →</Link>
             </div>
             <div className="divide-y divide-[#1E293B]">
-              {recentOrders?.items?.map((order) => (
-                <div key={order.id} className="px-6 py-4 flex items-center justify-between hover:bg-[#1A2235]/30 transition-colors">
+              {(stats?.lastOrders ?? []).map((o: any) => (
+                <div key={o.id} className="px-5 py-3 flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-[#F1F5F9]">{order.orderNumber}</p>
-                    <p className="text-xs text-[#64748B]">{order.customerEmail}</p>
+                    <p className="text-sm text-[#F1F5F9] font-medium">{o.orderNumber}</p>
+                    <p className="text-xs text-[#64748B]">{o.customer?.name ?? o.customer?.email ?? "Gast"}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-[#6366F1]">{order.total} &euro;</p>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                      order.status === "completed" ? "bg-[#22C55E]/10 text-[#22C55E]" :
-                      order.status === "paid" ? "bg-[#3B82F6]/10 text-[#3B82F6]" :
-                      order.status === "pending" ? "bg-[#F59E0B]/10 text-[#F59E0B]" :
-                      "bg-[#EF4444]/10 text-[#EF4444]"
-                    }`}>
-                      {order.status}
-                    </span>
+                    <p className="text-sm text-[#F1F5F9]">{formatCurrency(Number(o.total))}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[o.status] ?? "bg-gray-700 text-gray-300"}`}>{o.status}</span>
                   </div>
                 </div>
               ))}
-              {(!recentOrders?.items || recentOrders.items.length === 0) && (
-                <div className="px-6 py-8 text-center text-sm text-[#64748B]">Keine Bestellungen vorhanden</div>
-              )}
+              {!(stats?.lastOrders?.length) && <p className="text-[#64748B] text-sm text-center py-6">Keine Bestellungen</p>}
             </div>
           </div>
 
-          <div className="bg-[#111827] rounded-xl card-shadow overflow-hidden">
-            <div className="px-6 py-4 border-b border-[#1E293B] flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[#F1F5F9]">Top Produkte</h2>
-              <span className="text-xs text-[#64748B]">Nach Verk\u00e4ufen</span>
+          {/* Last Payments */}
+          <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#1E293B] flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-[#F1F5F9]">Letzte Zahlungen</h2>
+              <Link to="/admin/payments" className="text-xs text-[#6366F1] hover:underline">Alle →</Link>
             </div>
             <div className="divide-y divide-[#1E293B]">
-              {topProducts?.map((product, index) => (
-                <div key={product.productId} className="px-6 py-4 flex items-center gap-4 hover:bg-[#1A2235]/30 transition-colors">
-                  <span className="w-6 text-sm font-bold text-[#64748B]">#{index + 1}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#F1F5F9] truncate">{product.productName}</p>
-                    <p className="text-xs text-[#64748B]">{product.totalSold} verkauft</p>
+              {(stats?.lastPayments ?? []).map((p: any) => (
+                <div key={p.id} className="px-5 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-[#F1F5F9] font-medium capitalize">{p.provider}</p>
+                    <p className="text-xs text-[#64748B]">{formatDate(p.createdAt)}</p>
                   </div>
-                  <p className="text-sm font-semibold text-[#6366F1]">\u20ac{product.totalRevenue.toFixed(2)}</p>
+                  <div className="text-right">
+                    <p className="text-sm text-[#F1F5F9]">{formatCurrency(Number(p.amount ?? 0))}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${p.status === "success" ? "bg-green-500/20 text-green-400" : p.status === "failed" ? "bg-red-500/20 text-red-400" : "bg-yellow-500/20 text-yellow-400"}`}>{p.status}</span>
+                  </div>
                 </div>
               ))}
-              {(!topProducts || topProducts.length === 0) && (
-                <div className="px-6 py-8 text-center text-sm text-[#64748B]">Keine Daten vorhanden</div>
-              )}
+              {!(stats?.lastPayments?.length) && <p className="text-[#64748B] text-sm text-center py-6">Keine Zahlungen</p>}
+            </div>
+          </div>
+
+          {/* Last Registrations */}
+          <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#1E293B] flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-[#F1F5F9]">Neue Registrierungen</h2>
+              <Link to="/admin/users" className="text-xs text-[#6366F1] hover:underline">Alle →</Link>
+            </div>
+            <div className="divide-y divide-[#1E293B]">
+              {(stats?.lastRegistrations ?? []).map((u: any) => (
+                <div key={u.id} className="px-5 py-3 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    {(u.name ?? u.email ?? "?")[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-[#F1F5F9] truncate">{u.name ?? u.email}</p>
+                    <p className="text-xs text-[#64748B]">{formatDate(u.createdAt)}</p>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${u.role === "admin" ? "bg-red-500/20 text-red-400" : u.role === "seller" ? "bg-blue-500/20 text-blue-400" : "bg-gray-700 text-gray-300"}`}>{u.role}</span>
+                </div>
+              ))}
+              {!(stats?.lastRegistrations?.length) && <p className="text-[#64748B] text-sm text-center py-6">Keine Registrierungen</p>}
             </div>
           </div>
         </div>
 
-        <div className="bg-[#111827] rounded-xl card-shadow p-6">
-          <h2 className="text-base font-semibold text-[#F1F5F9] mb-4">Schnellaktionen</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { label: "Produkt erstellen", path: "/admin/products", icon: Package, color: "#6366F1" },
-              { label: "Bestellungen", path: "/admin/orders", icon: ShoppingCart, color: "#8B5CF6" },
-              { label: "Analytics", path: "/admin/analytics", icon: TrendingUp, color: "#22C55E" },
-              { label: "Einstellungen", path: "/admin/settings", icon: Settings, color: "#F59E0B" },
-            ].map((action) => {
-              const Icon = action.icon;
-              return (
-                <a
-                  key={action.path}
-                  href={action.path}
-                  className="flex flex-col items-center gap-2 p-4 rounded-lg bg-[#1A2235] border border-[#2D3748] hover:border-[#2D3748] hover:bg-[#1A2235] transition-all group"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.location.href = action.path;
-                  }}
-                >
-                  <Icon className="w-5 h-5" style={{ color: action.color }} />
-                  <span className="text-xs font-medium text-[#94A3B8] group-hover:text-[#F1F5F9] text-center">{action.label}</span>
-                </a>
-              );
-            })}
+        {/* System Status */}
+        <div className="bg-[#111827] rounded-xl border border-[#1E293B] p-5">
+          <h2 className="text-sm font-semibold text-[#F1F5F9] flex items-center gap-2 mb-4">
+            <Server className="w-4 h-4 text-green-400" /> Systemstatus
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-xs text-[#64748B]">Status</p>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-sm text-green-400 font-medium">Online</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-[#64748B]">Node.js</p>
+              <p className="text-sm text-[#F1F5F9] mt-1">{stats?.system?.nodeVersion ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-[#64748B]">Uptime</p>
+              <p className="text-sm text-[#F1F5F9] mt-1">
+                {stats?.system?.uptime ? `${Math.floor(stats.system.uptime / 3600)}h ${Math.floor((stats.system.uptime % 3600) / 60)}m` : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-[#64748B]">Speicher</p>
+              <p className="text-sm text-[#F1F5F9] mt-1">
+                {stats?.system?.memoryUsage ? `${Math.round((stats.system.memoryUsage as any).rss / 1024 / 1024)} MB` : "—"}
+              </p>
+            </div>
           </div>
         </div>
       </div>

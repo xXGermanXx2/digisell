@@ -13,7 +13,6 @@ export function useAuth(options?: UseAuthOptions) {
     options ?? {};
 
   const navigate = useNavigate();
-
   const utils = trpc.useUtils();
 
   const {
@@ -24,6 +23,7 @@ export function useAuth(options?: UseAuthOptions) {
   } = trpc.auth.me.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
     retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const logoutMutation = trpc.auth.logout.useMutation({
@@ -35,6 +35,7 @@ export function useAuth(options?: UseAuthOptions) {
 
   const logout = useCallback(() => logoutMutation.mutate(), [logoutMutation]);
 
+  // Nur weiterleiten wenn isLoading abgeschlossen und kein User vorhanden
   useEffect(() => {
     if (redirectOnUnauthenticated && !isLoading && !user) {
       const currentPath = window.location.pathname;
@@ -48,6 +49,7 @@ export function useAuth(options?: UseAuthOptions) {
     () => ({
       user: user ?? null,
       isAuthenticated: !!user,
+      // isLoading nur während der ersten Anfrage (nicht beim Hintergrund-Refetch)
       isLoading: isLoading || logoutMutation.isPending,
       error,
       logout,
