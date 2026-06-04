@@ -242,6 +242,53 @@ function WareModal({ product, onClose }: { product: { id: number; name: string; 
   );
 }
 
+// ── Plan Badge ───────────────────────────────────────────────────────────────
+const PLAN_COLORS: Record<string, string> = {
+  free: "bg-gray-500/20 text-gray-300 border-gray-500/30",
+  premium: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+  business: "bg-violet-500/20 text-violet-300 border-violet-500/30",
+  enterprise: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+};
+const PLAN_LABELS: Record<string, string> = { free: "Free", premium: "Premium", business: "Business", enterprise: "Enterprise" };
+
+function PlanBanner() {
+  const { data: plan } = trpc.subscription.getMyPlan.useQuery();
+  const navigate = useNavigate();
+  if (!plan) return null;
+  const limitReached = !plan.canCreateShop;
+  return (
+    <div className={`rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center gap-3 ${
+      limitReached ? "bg-amber-500/10 border-amber-500/30" : "bg-[#1A2235] border-[#2D3748]"
+    }`}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${PLAN_COLORS[plan.plan] ?? PLAN_COLORS.free}`}>
+            {PLAN_LABELS[plan.plan] ?? plan.plan}
+          </span>
+          {plan.isLifetimePremium && <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-amber-500/20 text-amber-300 border-amber-500/30">Lifetime</span>}
+          {plan.status === "expired" && <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-red-500/20 text-red-300 border-red-500/30">Abgelaufen</span>}
+        </div>
+        <p className="text-xs text-gray-400 mt-1">
+          Shops: <span className="text-white font-medium">{plan.currentShops} / {plan.shopLimit === -1 ? "∞" : plan.shopLimit}</span>
+          <span className="mx-2 text-gray-600">·</span>
+          Produkte: <span className="text-white font-medium">{plan.currentProducts} / {plan.productLimit === -1 ? "∞" : plan.productLimit}</span>
+          {plan.expiresAt && !plan.isLifetimePremium && (
+            <><span className="mx-2 text-gray-600">·</span>Läuft ab: <span className="text-white font-medium">{new Date(plan.expiresAt).toLocaleDateString("de-DE")}</span></>
+          )}
+        </p>
+      </div>
+      {limitReached && (
+        <div className="shrink-0">
+          <p className="text-amber-300 text-xs font-medium mb-1.5">Shop-Limit erreicht</p>
+          <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-black font-semibold text-xs" onClick={() => navigate("/seller/settings")}>
+            Tarif upgraden
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Overview Tab ─────────────────────────────────────────────────────────────
 function OverviewTab() {
   const { data: stats, isLoading } = trpc.seller.getStats.useQuery();
@@ -260,6 +307,7 @@ function OverviewTab() {
 
   return (
     <div className="space-y-5">
+      <PlanBanner />
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-white">Willkommen zurück!</h2>
         <p className="text-gray-400 text-sm mt-1 flex items-center gap-1 flex-wrap">
@@ -836,6 +884,27 @@ function SettingsTab() {
   );
 }
 
+// ── Sidebar Plan Badge ────────────────────────────────────────────────────────
+function SidebarPlanBadge() {
+  const { data: plan } = trpc.subscription.getMyPlan.useQuery();
+  if (!plan) return null;
+  return (
+    <div className="px-3 py-2 mb-1 rounded-lg bg-[#1A2235] border border-[#2D3748]">
+      <div className="flex items-center justify-between">
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${PLAN_COLORS[plan.plan] ?? PLAN_COLORS.free}`}>
+          {PLAN_LABELS[plan.plan] ?? plan.plan}
+        </span>
+        {plan.isLifetimePremium && <span className="text-xs text-amber-400">★ Lifetime</span>}
+      </div>
+      <p className="text-xs text-gray-500 mt-1">
+        {plan.currentShops}/{plan.shopLimit === -1 ? "∞" : plan.shopLimit} Shops
+        {" · "}
+        {plan.currentProducts}/{plan.productLimit === -1 ? "∞" : plan.productLimit} Produkte
+      </p>
+    </div>
+  );
+}
+
 // ── No Shop Prompt ────────────────────────────────────────────────────────────
 function NoShopPrompt() {
   return (
@@ -911,6 +980,7 @@ export default function SellerDashboard() {
           })}
         </nav>
         <div className="p-3 border-t border-[#2D3748] space-y-0.5">
+          <SidebarPlanBadge />
           {user?.role === "admin" && <Link to="/admin"><button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-[#1A2235] transition-all"><LayoutDashboard className="w-4 h-4" />Admin Panel</button></Link>}
           <Link to="/dashboard"><button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-[#1A2235] transition-all"><Home className="w-4 h-4" />Kunden-Dashboard</button></Link>
           <button onClick={logout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:text-red-400 hover:bg-red-500/5 transition-all"><LogOut className="w-4 h-4" />Abmelden</button>

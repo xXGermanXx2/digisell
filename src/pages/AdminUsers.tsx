@@ -9,9 +9,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   Search, MoreVertical, Shield, Ban, CheckCircle, Loader2, Users,
-  Trash2, Eye, AlertTriangle, X, ChevronLeft, ChevronRight
+  Trash2, Eye, AlertTriangle, X, ChevronLeft, ChevronRight,
+  Crown, Star, Zap, Infinity as InfinityIcon
 } from "lucide-react";
 import { toast } from "sonner";
+
+const PLAN_COLORS: Record<string, string> = {
+  free: "bg-gray-500/20 text-gray-300",
+  premium: "bg-indigo-500/20 text-indigo-300",
+  business: "bg-violet-500/20 text-violet-300",
+  enterprise: "bg-amber-500/20 text-amber-300",
+};
+const PLAN_LABELS: Record<string, string> = { free: "Free", premium: "Premium", business: "Business", enterprise: "Enterprise" };
 
 const roleColors: Record<string, string> = {
   admin: "bg-red-500/20 text-red-400",
@@ -38,6 +47,10 @@ export default function AdminUsers() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [showWarning, setShowWarning] = useState(false);
   const [warningMsg, setWarningMsg] = useState("");
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [planForm, setPlanForm] = useState({ plan: "free", expiresAt: "", isLifetime: false, notes: "" });
+  const [showLimitsModal, setShowLimitsModal] = useState(false);
+  const [limitsForm, setLimitsForm] = useState({ shopLimit: 1, productLimit: 10, storageLimit: 500 });
 
   const { data, isLoading } = trpc.admin.listUsers.useQuery({
     search: search || undefined,
@@ -69,6 +82,18 @@ export default function AdminUsers() {
   });
   const sendWarning = trpc.admin.sendWarning.useMutation({
     onSuccess: () => { toast.success("Warnung gesendet"); setShowWarning(false); setWarningMsg(""); },
+  });
+  const setPlan = trpc.subscription.adminSetPlan.useMutation({
+    onSuccess: () => { toast.success("Tarif geändert"); setShowPlanModal(false); utils.admin.listUsers.invalidate(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const setLimits = trpc.subscription.adminSetLimits.useMutation({
+    onSuccess: () => { toast.success("Limits gespeichert"); setShowLimitsModal(false); utils.admin.listUsers.invalidate(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const revokePremium = trpc.subscription.adminRevokePremium.useMutation({
+    onSuccess: () => { toast.success("Premium entzogen"); utils.admin.listUsers.invalidate(); },
+    onError: (e) => toast.error(e.message),
   });
 
   const totalPages = Math.ceil((data?.total ?? 0) / 20);
@@ -134,9 +159,9 @@ export default function AdminUsers() {
                   <TableRow className="border-[#1E293B] hover:bg-transparent">
                     <TableHead className="text-[#64748B]">Benutzer</TableHead>
                     <TableHead className="text-[#64748B]">Rolle</TableHead>
+                    <TableHead className="text-[#64748B]">Tarif</TableHead>
+                    <TableHead className="text-[#64748B]">Shops</TableHead>
                     <TableHead className="text-[#64748B]">Status</TableHead>
-                    <TableHead className="text-[#64748B]">E-Mail verifiziert</TableHead>
-                    <TableHead className="text-[#64748B]">2FA</TableHead>
                     <TableHead className="text-[#64748B]">Registriert</TableHead>
                     <TableHead className="text-[#64748B] text-right">Aktionen</TableHead>
                   </TableRow>
@@ -159,17 +184,19 @@ export default function AdminUsers() {
                         <Badge className={roleColors[user.role] ?? ""}>{user.role}</Badge>
                       </TableCell>
                       <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PLAN_COLORS[(user as any).subscriptionPlan ?? "free"]}`}>
+                            {PLAN_LABELS[(user as any).subscriptionPlan ?? "free"]}
+                          </span>
+                          {(user as any).isLifetimePremium && <span className="text-amber-400 text-xs">★</span>}
+                          {(user as any).subscriptionStatus === "expired" && <span className="text-xs text-red-400">Abgelaufen</span>}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-[#94A3B8] text-sm">
+                        {(user as any).shopCount ?? 0} / {(user as any).shopLimit === -1 ? "∞" : ((user as any).shopLimit ?? 1)}
+                      </TableCell>
+                      <TableCell>
                         <Badge className={statusColors[user.status] ?? ""}>{user.status}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {user.emailVerified
-                          ? <CheckCircle className="w-4 h-4 text-green-400" />
-                          : <X className="w-4 h-4 text-red-400" />}
-                      </TableCell>
-                      <TableCell>
-                        {(user as any).twoFactorEnabled
-                          ? <CheckCircle className="w-4 h-4 text-green-400" />
-                          : <span className="text-[#64748B] text-xs">Nein</span>}
                       </TableCell>
                       <TableCell className="text-[#94A3B8] text-sm">
                         {formatDate(user.createdAt)}
@@ -221,6 +248,21 @@ export default function AdminUsers() {
                               className="text-[#94A3B8] hover:bg-[#2D3748] cursor-pointer">
                               <Shield className="w-4 h-4 mr-2" /> Rolle: Kunde
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-[#2D3748]" />
+                            <DropdownMenuItem onClick={() => { setSelectedUser(user); setPlanForm({ plan: (user as any).subscriptionPlan ?? "free", expiresAt: "", isLifetime: !!(user as any).isLifetimePremium, notes: "" }); setShowPlanModal(true); }}
+                              className="text-indigo-400 hover:bg-[#2D3748] cursor-pointer">
+                              <Crown className="w-4 h-4 mr-2" /> Tarif ändern
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => { setSelectedUser(user); setLimitsForm({ shopLimit: (user as any).shopLimit ?? 1, productLimit: (user as any).productLimit ?? 10, storageLimit: (user as any).storageLimit ?? 500 }); setShowLimitsModal(true); }}
+                              className="text-violet-400 hover:bg-[#2D3748] cursor-pointer">
+                              <Zap className="w-4 h-4 mr-2" /> Limits setzen
+                            </DropdownMenuItem>
+                            {(user as any).subscriptionPlan !== "free" && (
+                              <DropdownMenuItem onClick={() => { if (confirm("Premium wirklich entziehen?")) revokePremium.mutate({ userId: user.id }); }}
+                                className="text-orange-400 hover:bg-[#2D3748] cursor-pointer">
+                                <Star className="w-4 h-4 mr-2" /> Premium entziehen
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator className="bg-[#2D3748]" />
                             <DropdownMenuItem
                               onClick={() => { if (confirm("Benutzer wirklich löschen?")) deleteUser.mutate({ id: user.id }); }}
@@ -318,6 +360,88 @@ export default function AdminUsers() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* Plan Modal */}
+      {showPlanModal && selectedUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-[#1E293B] rounded-xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1E293B]">
+              <h2 className="text-base font-semibold text-[#F1F5F9] flex items-center gap-2"><Crown className="w-4 h-4 text-indigo-400" />Tarif ändern</h2>
+              <Button variant="ghost" size="sm" onClick={() => setShowPlanModal(false)} className="text-[#64748B]"><X className="w-4 h-4" /></Button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-[#94A3B8]">Nutzer: <span className="text-[#F1F5F9] font-medium">{selectedUser.name ?? selectedUser.email}</span></p>
+              <div>
+                <label className="block text-xs text-[#64748B] mb-1.5">Tarif</label>
+                <select value={planForm.plan} onChange={e => setPlanForm(f => ({ ...f, plan: e.target.value }))}
+                  className="w-full bg-[#0F172A] border border-[#1E293B] text-[#F1F5F9] rounded-lg px-3 py-2 text-sm">
+                  <option value="free">Free (1 Shop, 10 Produkte)</option>
+                  <option value="premium">Premium (5 Shops, 100 Produkte)</option>
+                  <option value="business">Business (20 Shops, 500 Produkte)</option>
+                  <option value="enterprise">Enterprise (Unbegrenzt)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-[#64748B] mb-1.5">Ablaufdatum (leer = kein Ablauf)</label>
+                <input type="date" value={planForm.expiresAt} onChange={e => setPlanForm(f => ({ ...f, expiresAt: e.target.value }))}
+                  className="w-full bg-[#0F172A] border border-[#1E293B] text-[#F1F5F9] rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={planForm.isLifetime} onChange={e => setPlanForm(f => ({ ...f, isLifetime: e.target.checked }))} className="rounded" />
+                <span className="text-sm text-[#94A3B8]">Lifetime Premium (kein Ablauf)</span>
+              </label>
+              <div>
+                <label className="block text-xs text-[#64748B] mb-1.5">Notiz (optional)</label>
+                <input value={planForm.notes} onChange={e => setPlanForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="z.B. Manuell vergeben, Gewinnspiel..."
+                  className="w-full bg-[#0F172A] border border-[#1E293B] text-[#F1F5F9] rounded-lg px-3 py-2 text-sm placeholder:text-[#64748B]" />
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <Button variant="outline" onClick={() => setShowPlanModal(false)} className="border-[#1E293B] text-[#94A3B8]">Abbrechen</Button>
+                <Button onClick={() => setPlan.mutate({ userId: selectedUser.id, plan: planForm.plan as any, expiresAt: planForm.expiresAt || undefined, isLifetimePremium: planForm.isLifetime, notes: planForm.notes || undefined })}
+                  disabled={setPlan.isPending} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                  {setPlan.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Speichern"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Limits Modal */}
+      {showLimitsModal && selectedUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-[#1E293B] rounded-xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1E293B]">
+              <h2 className="text-base font-semibold text-[#F1F5F9] flex items-center gap-2"><Zap className="w-4 h-4 text-violet-400" />Individuelle Limits</h2>
+              <Button variant="ghost" size="sm" onClick={() => setShowLimitsModal(false)} className="text-[#64748B]"><X className="w-4 h-4" /></Button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-[#94A3B8]">Nutzer: <span className="text-[#F1F5F9] font-medium">{selectedUser.name ?? selectedUser.email}</span></p>
+              <p className="text-xs text-[#64748B]">-1 = unbegrenzt</p>
+              {[
+                { label: "Shop-Limit", key: "shopLimit" as const },
+                { label: "Produkt-Limit", key: "productLimit" as const },
+                { label: "Speicher-Limit (MB)", key: "storageLimit" as const },
+              ].map(({ label, key }) => (
+                <div key={key}>
+                  <label className="block text-xs text-[#64748B] mb-1.5">{label}</label>
+                  <input type="number" min={-1} value={limitsForm[key]} onChange={e => setLimitsForm(f => ({ ...f, [key]: Number(e.target.value) }))}
+                    className="w-full bg-[#0F172A] border border-[#1E293B] text-[#F1F5F9] rounded-lg px-3 py-2 text-sm" />
+                </div>
+              ))}
+              <div className="flex gap-3 justify-end pt-2">
+                <Button variant="outline" onClick={() => setShowLimitsModal(false)} className="border-[#1E293B] text-[#94A3B8]">Abbrechen</Button>
+                <Button onClick={() => setLimits.mutate({ userId: selectedUser.id, ...limitsForm })}
+                  disabled={setLimits.isPending} className="bg-violet-600 hover:bg-violet-700 text-white">
+                  {setLimits.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Speichern"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

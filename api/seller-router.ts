@@ -47,15 +47,41 @@ export const sellerRouter = createRouter({
     )
     .mutation(async ({ ctx, input }) => {
     const db = getDb();
-      // Prüfen ob Nutzer bereits einen Shop hat
-      const [existing] = await db
-        .select({ id: shops.id })
-        .from(shops)
-        .where(eq(shops.ownerId, ctx.user.id))
+      // Nutzer-Limits aus DB lesen
+      const [userLimits] = await db
+        .select({
+          shopLimit: users.shopLimit,
+          subscriptionExpiresAt: users.subscriptionExpiresAt,
+          isLifetimePremium: users.isLifetimePremium,
+        })
+        .from(users)
+        .where(eq(users.id, ctx.user.id))
         .limit(1);
 
-      if (existing) {
-        throw new Error("Du hast bereits einen Shop.");
+      // Aktuelle Shop-Anzahl
+      const [shopCountRow] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(shops)
+        .where(eq(shops.ownerId, ctx.user.id));
+
+      const currentShopCount = Number(shopCountRow?.count ?? 0);
+
+      // Abo abgelaufen?
+      const isExpired =
+        !userLimits?.isLifetimePremium &&
+        userLimits?.subscriptionExpiresAt !== null &&
+        userLimits?.subscriptionExpiresAt !== undefined &&
+        new Date(userLimits.subscriptionExpiresAt) < new Date();
+
+      const effectiveShopLimit = isExpired ? 1 : (userLimits?.shopLimit ?? 1);
+
+      // Shop-Limit prüfen (-1 = unbegrenzt)
+      if (effectiveShopLimit !== -1 && currentShopCount >= effectiveShopLimit) {
+        throw new Error(
+          effectiveShopLimit === 1
+            ? "Du hast dein Shop-Limit erreicht. Upgrade auf Premium um weitere Shops erstellen zu können."
+            : `Du hast dein Shop-Limit von ${effectiveShopLimit} Shops erreicht. Upgrade auf einen höheren Tarif.`
+        );
       }
 
       // Slug-Verfügbarkeit prüfen

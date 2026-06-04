@@ -40,6 +40,14 @@ export const users = mysqlTable("users", {
   country: varchar("country", { length: 2 }),
   timezone: varchar("timezone", { length: 100 }).default("Europe/Berlin"),
   language: varchar("language", { length: 10 }).default("de"),
+  // Subscription / Plan
+  subscriptionPlan: mysqlEnum("subscription_plan", ["free", "premium", "business", "enterprise"]).notNull().default("free"),
+  subscriptionStatus: mysqlEnum("subscription_status", ["active", "expired", "cancelled", "none"]).notNull().default("none"),
+  subscriptionExpiresAt: timestamp("subscription_expires_at"),
+  shopLimit: int("shop_limit").notNull().default(1),
+  productLimit: int("product_limit").notNull().default(10),
+  storageLimit: int("storage_limit").notNull().default(500),
+  isLifetimePremium: boolean("is_lifetime_premium").notNull().default(false),
   // Notifications
   notifyEmail: boolean("notify_email").notNull().default(true),
   notifyOrderEmail: boolean("notify_order_email").notNull().default(true),
@@ -672,3 +680,38 @@ export type LoginLog = typeof loginLogs.$inferSelect;
 export type AdminRole = typeof adminRoles.$inferSelect;
 export type UserAdminRole = typeof userAdminRoles.$inferSelect;
 export type ModerationLog = typeof moderationLogs.$inferSelect;
+
+// ===================== PLATFORM SUBSCRIPTIONS (Seller-Abos) =====================
+export const platformSubscriptions = mysqlTable("platform_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: bigint("user_id", { mode: "number", unsigned: true }).references(() => users.id, { onDelete: "cascade" }).notNull(),
+  planName: mysqlEnum("plan_name", ["free", "premium", "business", "enterprise"]).notNull(),
+  status: mysqlEnum("status", ["active", "expired", "cancelled"]).notNull().default("active"),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+  grantedByAdminId: bigint("granted_by_admin_id", { mode: "number", unsigned: true }).references(() => users.id),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+}, (t) => ({
+  userIdx: index("platform_sub_user_idx").on(t.userId),
+  statusIdx: index("platform_sub_status_idx").on(t.status),
+}));
+
+// ===================== SUBSCRIPTION AUDIT LOGS =====================
+export const subscriptionAuditLogs = mysqlTable("subscription_audit_logs", {
+  id: serial("id").primaryKey(),
+  adminId: bigint("admin_id", { mode: "number", unsigned: true }).references(() => users.id).notNull(),
+  userId: bigint("user_id", { mode: "number", unsigned: true }).references(() => users.id).notNull(),
+  action: varchar("action", { length: 100 }).notNull(), // e.g. "plan_changed", "limit_changed", "premium_granted"
+  oldValues: json("old_values"),
+  newValues: json("new_values"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => ({
+  adminIdx: index("audit_admin_idx").on(t.adminId),
+  userIdx: index("audit_user_idx").on(t.userId),
+  createdAtIdx: index("audit_created_at_idx").on(t.createdAt),
+}));
+
+export type PlatformSubscription = typeof platformSubscriptions.$inferSelect;
+export type SubscriptionAuditLog = typeof subscriptionAuditLogs.$inferSelect;
