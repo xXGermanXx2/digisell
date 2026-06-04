@@ -31,7 +31,8 @@ import AdminShops from "./pages/AdminShops";
 import AdminReports from "./pages/AdminReports";
 import AdminLoginLogs from "./pages/AdminLoginLogs";
 import AdminRoles from "./pages/AdminRoles";
-import SellerPanel from "./pages/SellerPanel";
+import SellerDashboard from "./pages/SellerDashboard";
+import ShopSetupWizard from "./pages/ShopSetupWizard";
 import NotFound from "./pages/NotFound";
 
 export default function App() {
@@ -58,6 +59,11 @@ export default function App() {
         <Route path="/webhooks" element={<WebhookSettings />} />
         <Route path="/invoice/:orderId" element={<InvoiceView />} />
 
+        {/* Seller Dashboard — für alle angemeldeten Nutzer */}
+        <Route path="/seller" element={<SellerDashboard />} />
+        <Route path="/seller/:tab" element={<SellerDashboard />} />
+        <Route path="/seller/setup" element={<ShopSetupWizard />} />
+
         {/* Admin */}
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/products" element={<AdminProducts />} />
@@ -76,7 +82,6 @@ export default function App() {
         <Route path="/admin/reports" element={<AdminReports />} />
         <Route path="/admin/login-logs" element={<AdminLoginLogs />} />
         <Route path="/admin/roles" element={<AdminRoles />} />
-        <Route path="/seller" element={<SellerPanel />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -12,6 +12,7 @@ import {
   LogOut,
   User,
   Store,
+  Package,
 } from "lucide-react";
 
 export default function Navbar() {
@@ -21,7 +22,8 @@ export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { itemCount } = useCart();
   const navigate = useNavigate();
-  const isAdmin = user?.role === "admin" || user?.role === "seller";
+
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -76,19 +78,31 @@ export default function Navbar() {
           </Link>
 
           {isAuthenticated ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Mein Shop — fuer alle angemeldeten Nutzer */}
+              <Link to="/seller">
+                <Button size="sm" variant="outline" className="border-[#2D3748] text-[#94A3B8] hover:text-white hover:border-indigo-500 hover:bg-indigo-500/10 transition-all">
+                  <Store className="w-4 h-4 mr-1.5" />
+                  Mein Shop
+                </Button>
+              </Link>
+
+              {/* Admin Panel — nur fuer Admins */}
               {isAdmin && (
                 <Link to="/admin">
-                  <Button variant="ghost" size="sm" className="text-[#94A3B8] hover:text-white hover:bg-[#1A2235]">
-                    <LayoutDashboard className="w-4 h-4 mr-2" />
+                  <Button size="sm" className="gradient-bg text-white hover:opacity-90">
+                    <LayoutDashboard className="w-4 h-4 mr-1.5" />
                     Admin
                   </Button>
                 </Link>
               )}
+
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-sm font-medium">
-                  {user?.name?.[0]?.toUpperCase() || "U"}
-                </div>
+                <Link to="/dashboard">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-sm font-medium cursor-pointer hover:opacity-80 transition-opacity">
+                    {user?.name?.[0]?.toUpperCase() || "U"}
+                  </div>
+                </Link>
                 <button
                   onClick={logout}
                   className="p-2 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-white transition-colors"
@@ -99,12 +113,19 @@ export default function Navbar() {
               </div>
             </div>
           ) : (
-            <Link to="/login">
-              <Button size="sm" className="gradient-bg text-white hover:opacity-90">
-                <User className="w-4 h-4 mr-2" />
-                Anmelden
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link to="/login">
+                <Button size="sm" variant="outline" className="border-[#2D3748] text-[#94A3B8] hover:text-white">
+                  Anmelden
+                </Button>
+              </Link>
+              <Link to="/register">
+                <Button size="sm" className="gradient-bg text-white hover:opacity-90">
+                  <User className="w-4 h-4 mr-1.5" />
+                  Registrieren
+                </Button>
+              </Link>
+            </div>
           )}
         </div>
 
@@ -116,9 +137,10 @@ export default function Navbar() {
         </button>
       </div>
 
+      {/* Mobile Menu */}
       {menuOpen && (
-        <div className="md:hidden absolute top-[72px] left-0 right-0 bg-[#111827] border-b border-[#2D3748] p-4 space-y-4 animate-fade-in">
-          <form onSubmit={handleSearch} className="flex gap-2">
+        <div className="md:hidden absolute top-[72px] left-0 right-0 bg-[#111827] border-b border-[#2D3748] p-4 space-y-2 animate-fade-in">
+          <form onSubmit={handleSearch} className="flex gap-2 mb-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
               <input
@@ -130,35 +152,48 @@ export default function Navbar() {
               />
             </div>
           </form>
-          <div className="flex flex-col gap-2">
-            <Link to="/cart" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-white">
-              <ShoppingCart className="w-5 h-5" />
-              Warenkorb {itemCount > 0 && `(${itemCount})`}
-            </Link>
-            {isAuthenticated ? (
-              <>
-                <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-white">
-                  <User className="w-5 h-5" />
-                  Mein Konto
+
+          <Link to="/cart" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-white">
+            <ShoppingCart className="w-5 h-5" />
+            Warenkorb {itemCount > 0 && `(${itemCount})`}
+          </Link>
+
+          {isAuthenticated ? (
+            <>
+              <Link to="/seller" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-white">
+                <Store className="w-5 h-5" />
+                Mein Shop
+              </Link>
+              <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-white">
+                <User className="w-5 h-5" />
+                Mein Konto
+              </Link>
+              {isAdmin && (
+                <Link to="/admin" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-white">
+                  <LayoutDashboard className="w-5 h-5" />
+                  Admin Panel
                 </Link>
-                {isAdmin && (
-                  <Link to="/admin" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-white">
-                    <LayoutDashboard className="w-5 h-5" />
-                    Admin Panel
-                  </Link>
-                )}
-                <button onClick={() => { logout(); setMenuOpen(false); }} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-[#EF4444] w-full text-left">
-                  <LogOut className="w-5 h-5" />
-                  Abmelden
-                </button>
-              </>
-            ) : (
-              <Link to="/login" onClick={() => setMenuOpen(false)} className="flex items-center justify-center gap-2 p-3 rounded-lg gradient-bg text-white font-medium">
-                <User className="w-4 h-4" />
+              )}
+              <button
+                onClick={() => { logout(); setMenuOpen(false); }}
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-[#EF4444] w-full text-left"
+              >
+                <LogOut className="w-5 h-5" />
+                Abmelden
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-white">
+                <User className="w-5 h-5" />
                 Anmelden
               </Link>
-            )}
-          </div>
+              <Link to="/register" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-white">
+                <Package className="w-5 h-5" />
+                Registrieren
+              </Link>
+            </>
+          )}
         </div>
       )}
     </nav>

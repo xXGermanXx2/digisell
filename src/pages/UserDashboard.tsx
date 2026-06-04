@@ -13,6 +13,7 @@ import {
   Package,
   Mail,
   Shield,
+  Store,
 } from "lucide-react";
 
 const navItems = [
@@ -79,6 +80,13 @@ export default function UserDashboard() {
               </div>
             </div>
 
+            <Link
+              to="/seller"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-indigo-400 hover:bg-indigo-500/10 transition-colors mb-2"
+            >
+              <Store className="w-4 h-4" />
+              Mein Shop
+            </Link>
             {isAdmin && (
               <Link
                 to="/admin"

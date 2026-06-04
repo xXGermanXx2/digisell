@@ -215,6 +215,7 @@ export const orders = mysqlTable("orders", {
   // Coupon
   couponCode: varchar("coupon_code", { length: 50 }),
   // Affiliate
+  sellerId: bigint("seller_id", { mode: "number", unsigned: true }).references(() => users.id),
   affiliateId: bigint("affiliate_id", { mode: "number", unsigned: true }).references(() => users.id),
   affiliateCommission: decimal("affiliate_commission", { precision: 10, scale: 2 }).default("0"),
   // Fraud
@@ -315,6 +316,7 @@ export const coupons = mysqlTable("coupons", {
   minOrderAmount: decimal("min_order_amount", { precision: 10, scale: 2 }).default("0"),
   expiresAt: timestamp("expires_at"),
   isActive: boolean("is_active").notNull().default(true),
+  createdBy: bigint("created_by", { mode: "number", unsigned: true }).references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -329,6 +331,7 @@ export const tickets = mysqlTable("tickets", {
   category: mysqlEnum("category", ["general", "technical", "billing", "refund"]).notNull().default("general"),
   status: mysqlEnum("status", ["open", "in_progress", "resolved", "closed"]).notNull().default("open"),
   priority: mysqlEnum("priority", ["low", "medium", "high"]).notNull().default("medium"),
+  sellerId: bigint("seller_id", { mode: "number", unsigned: true }).references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 }, (t) => ({
@@ -544,6 +547,7 @@ export const shops = mysqlTable("shops", {
   description: text("description"),
   logo: varchar("logo", { length: 500 }),
   banner: varchar("banner", { length: 500 }),
+  category: varchar("category", { length: 100 }).default("general"),
   currency: varchar("currency", { length: 3 }).notNull().default("EUR"),
   status: mysqlEnum("status", ["active", "suspended", "pending"]).notNull().default("active"),
   totalRevenue: decimal("total_revenue", { precision: 10, scale: 2 }).notNull().default("0"),

@@ -38,9 +38,12 @@ export default function Register() {
             </div>
             <h2 className="text-xl font-bold text-white mb-2">Registrierung erfolgreich!</h2>
             <p className="text-slate-400 mb-4">Bitte überprüfe deine E-Mails und bestätige deine E-Mail-Adresse.</p>
-            <Button asChild className="w-full bg-indigo-600 hover:bg-indigo-700">
-              <Link to="/login">Zum Login</Link>
-            </Button>
+            <p className="text-slate-500 text-sm mb-4">Nach dem Login kannst du sofort deinen eigenen Shop erstellen und Produkte verkaufen.</p>
+            <div className="space-y-2">
+              <Button asChild className="w-full bg-indigo-600 hover:bg-indigo-700">
+                <Link to="/login">Zum Login</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
