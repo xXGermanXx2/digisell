@@ -25,6 +25,8 @@ import {
   Globe,
   Loader2,
   Check,
+  X,
+  Lock,
 } from "lucide-react";
 
 const categoryIcons: Record<string, React.ReactNode> = {
@@ -120,11 +122,16 @@ const PLANS = [
   },
 ];
 
+type PlanKey = "free" | "premium" | "business" | "enterprise";
+
 export default function Home() {
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get("search") ?? undefined;
   const categoryFilter = searchParams.get("category") ?? undefined;
   const [activeCategory, setActiveCategory] = useState<number | undefined>(undefined);
+  const [selectedPlan, setSelectedPlan] = useState<PlanKey | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"paypal" | "card">("card");
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
   const { data: categories } = trpc.category.list.useQuery();
   const { data: productsData, isLoading: productsLoading } = trpc.product.list.useQuery({
@@ -378,13 +385,26 @@ export default function Home() {
                     ))}
                   </ul>
 
-                  <Link to="/register">
+                  {plan.key === "free" ? (
+                    <Link to="/register">
+                      <button className={`w-full py-2.5 px-4 rounded-xl text-sm font-medium transition-colors ${plan.ctaStyle}`}>
+                        {plan.cta}
+                      </button>
+                    </Link>
+                  ) : plan.key === "enterprise" ? (
+                    <a href="mailto:support@digisell.de">
+                      <button className={`w-full py-2.5 px-4 rounded-xl text-sm font-medium transition-colors ${plan.ctaStyle}`}>
+                        {plan.cta}
+                      </button>
+                    </a>
+                  ) : (
                     <button
+                      onClick={() => setSelectedPlan(plan.key as PlanKey)}
                       className={`w-full py-2.5 px-4 rounded-xl text-sm font-medium transition-colors ${plan.ctaStyle}`}
                     >
                       {plan.cta}
                     </button>
-                  </Link>
+                  )}
                 </div>
               </div>
             ))}
@@ -416,6 +436,155 @@ export default function Home() {
       </section>
 
       <Footer />
+
+      {/* Subscription Purchase Modal */}
+      {selectedPlan && selectedPlan !== "free" && selectedPlan !== "enterprise" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="relative w-full max-w-md bg-[#0F172A] border border-[#2D3748] rounded-2xl shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-[#1E293B]">
+              <div>
+                <h3 className="text-lg font-bold text-[#F1F5F9]">
+                  {PLANS.find(p => p.key === selectedPlan)?.name} abonnieren
+                </h3>
+                <p className="text-xs text-[#64748B] mt-0.5">Wähle deine Zahlungsmethode</p>
+              </div>
+              <button
+                onClick={() => setSelectedPlan(null)}
+                className="w-8 h-8 rounded-lg bg-[#1E293B] hover:bg-[#2D3748] flex items-center justify-center text-[#64748B] hover:text-[#F1F5F9] transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5">
+              {/* Billing Cycle Toggle */}
+              <div className="flex items-center gap-2 p-1 bg-[#1E293B] rounded-xl">
+                <button
+                  onClick={() => setBillingCycle("monthly")}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    billingCycle === "monthly"
+                      ? "bg-[#6366F1] text-white shadow"
+                      : "text-[#64748B] hover:text-[#F1F5F9]"
+                  }`}
+                >
+                  Monatlich
+                </button>
+                <button
+                  onClick={() => setBillingCycle("yearly")}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    billingCycle === "yearly"
+                      ? "bg-[#6366F1] text-white shadow"
+                      : "text-[#64748B] hover:text-[#F1F5F9]"
+                  }`}
+                >
+                  Jährlich
+                  <span className="ml-1.5 text-xs text-green-400 font-semibold">-20%</span>
+                </button>
+              </div>
+
+              {/* Price Display */}
+              {(() => {
+                const plan = PLANS.find(p => p.key === selectedPlan)!;
+                const monthlyPrice = parseFloat(plan.price);
+                const displayPrice = billingCycle === "yearly"
+                  ? (monthlyPrice * 12 * 0.8).toFixed(2)
+                  : plan.price;
+                const perMonth = billingCycle === "yearly"
+                  ? (monthlyPrice * 0.8).toFixed(2)
+                  : plan.price;
+                return (
+                  <div className="p-4 bg-[#1E293B] rounded-xl text-center">
+                    <div className="text-3xl font-bold text-[#F1F5F9]">€{displayPrice}</div>
+                    <div className="text-xs text-[#64748B] mt-1">
+                      {billingCycle === "yearly"
+                        ? `€${perMonth} / Monat · jährlich abgerechnet`
+                        : `€${displayPrice} / Monat`}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Payment Method */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wider">Zahlungsmethode</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setPaymentMethod("card")}
+                    className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all ${
+                      paymentMethod === "card"
+                        ? "border-[#6366F1] bg-[#6366F1]/10 text-[#F1F5F9]"
+                        : "border-[#2D3748] bg-[#1E293B] text-[#64748B] hover:border-[#4B5563]"
+                    }`}
+                  >
+                    <CreditCard className="w-4 h-4 shrink-0" />
+                    <span className="text-sm font-medium">Kreditkarte</span>
+                  </button>
+                  <button
+                    onClick={() => setPaymentMethod("paypal")}
+                    className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all ${
+                      paymentMethod === "paypal"
+                        ? "border-[#0070BA] bg-[#0070BA]/10 text-[#F1F5F9]"
+                        : "border-[#2D3748] bg-[#1E293B] text-[#64748B] hover:border-[#4B5563]"
+                    }`}
+                  >
+                    <span className={`text-sm font-bold ${paymentMethod === "paypal" ? "text-[#0070BA]" : ""}`}>P</span>
+                    <span className="text-sm font-medium">PayPal</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Card Form (UI only) */}
+              {paymentMethod === "card" && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-[#64748B] mb-1.5">Karteninhaber</label>
+                    <input type="text" placeholder="Max Mustermann" className="w-full px-3 py-2.5 bg-[#1E293B] border border-[#2D3748] rounded-lg text-sm text-[#F1F5F9] placeholder-[#475569] focus:outline-none focus:border-[#6366F1] transition-colors" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#64748B] mb-1.5">Kartennummer</label>
+                    <input type="text" placeholder="1234 5678 9012 3456" maxLength={19} className="w-full px-3 py-2.5 bg-[#1E293B] border border-[#2D3748] rounded-lg text-sm text-[#F1F5F9] placeholder-[#475569] focus:outline-none focus:border-[#6366F1] transition-colors" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-[#64748B] mb-1.5">Ablaufdatum</label>
+                      <input type="text" placeholder="MM / JJ" maxLength={7} className="w-full px-3 py-2.5 bg-[#1E293B] border border-[#2D3748] rounded-lg text-sm text-[#F1F5F9] placeholder-[#475569] focus:outline-none focus:border-[#6366F1] transition-colors" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#64748B] mb-1.5">CVV</label>
+                      <input type="text" placeholder="123" maxLength={4} className="w-full px-3 py-2.5 bg-[#1E293B] border border-[#2D3748] rounded-lg text-sm text-[#F1F5F9] placeholder-[#475569] focus:outline-none focus:border-[#6366F1] transition-colors" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PayPal Info */}
+              {paymentMethod === "paypal" && (
+                <div className="p-4 bg-[#0070BA]/10 border border-[#0070BA]/20 rounded-xl text-center">
+                  <p className="text-sm text-[#94A3B8]">Du wirst zu PayPal weitergeleitet, um die Zahlung abzuschließen.</p>
+                </div>
+              )}
+
+              {/* Coming Soon Notice */}
+              <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+                <p className="text-xs text-amber-300">Zahlungsabwicklung wird in Kürze aktiviert. Abonnements können derzeit vom Admin manuell vergeben werden.</p>
+              </div>
+
+              {/* CTA */}
+              <button disabled className="w-full py-3 rounded-xl text-sm font-semibold bg-[#6366F1]/50 text-white/50 cursor-not-allowed flex items-center justify-center gap-2">
+                <Lock className="w-4 h-4" />
+                Zahlung abschließen (demnächst)
+              </button>
+
+              <p className="text-center text-xs text-[#475569]">
+                Durch den Kauf stimmst du unseren{" "}
+                <a href="/terms" className="text-[#6366F1] hover:underline">AGB</a> zu.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

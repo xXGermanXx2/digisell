@@ -32,6 +32,10 @@ import {
   EyeOff,
   Send,
   ExternalLink,
+  Coins,
+  Wallet,
+  ArrowUpRight,
+  ArrowDownLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,6 +45,7 @@ const navItems = [
   { id: "downloads", label: "Downloads & Keys", icon: Download },
   { id: "tickets", label: "Support", icon: Ticket },
   { id: "payments", label: "Zahlungen", icon: CreditCard },
+  { id: "credits", label: "Mein Guthaben", icon: Coins },
   { id: "security", label: "Sicherheit", icon: Shield },
   { id: "settings", label: "Einstellungen", icon: Settings },
 ];
@@ -799,6 +804,117 @@ function SettingsTab({ user }: any) {
   );
 }
 
+
+// ─── Credits Tab ──────────────────────────────────────────────────────────────
+function CreditsTab({ user }: any) {
+  const { data: platformCreditsData, isLoading: pcLoading } = trpc.credits.getMyPlatformCredits.useQuery(undefined, { enabled: !!user });
+  const { data: platformHistoryData } = trpc.credits.getMyPlatformCreditHistory.useQuery({ page: 1, limit: 20 }, { enabled: !!user });
+  const { data: shopCreditsData, isLoading: scLoading } = trpc.credits.getMyShopCreditHistory.useQuery({ shopId: 0, page: 1, limit: 5 }, { enabled: false }); // placeholder
+  // Shop credits overview - use getShopCreditInfo for each shop
+
+  const platformBalance = platformCreditsData?.balance ?? 0;
+  const platformHistory = platformHistoryData ?? [];
+  const shopCreditsList: any[] = [];
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* Platform Credits */}
+      <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#1E293B] flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+            <Coins className="w-5 h-5 text-indigo-400" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-[#F1F5F9]">DigiSell Plattform-Guthaben</h3>
+            <p className="text-xs text-[#64748B]">Guthaben für Käufe auf der Plattform</p>
+          </div>
+          <div className="ml-auto text-right">
+            {pcLoading ? (
+              <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+            ) : (
+              <p className="text-2xl font-bold text-indigo-400">{platformBalance.toFixed(2)} <span className="text-sm font-normal text-[#64748B]">Credits</span></p>
+            )}
+          </div>
+        </div>
+        <div className="px-5 py-4">
+          <h4 className="text-xs font-medium text-[#64748B] uppercase tracking-wider mb-3">Verlauf</h4>
+          {pcLoading ? (
+            <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 text-indigo-400 animate-spin" /></div>
+          ) : platformHistory.length === 0 ? (
+            <div className="text-center py-8">
+              <Wallet className="w-8 h-8 text-[#64748B] mx-auto mb-2" />
+              <p className="text-sm text-[#64748B]">Noch keine Transaktionen</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {platformHistory.slice(0, 10).map((tx: any) => (
+                <div key={tx.id} className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-[#1A2235] border border-[#1E293B]">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center ${tx.type === "credit" ? "bg-green-500/10" : "bg-red-500/10"}`}>
+                      {tx.type === "credit" ? <ArrowDownLeft className="w-3.5 h-3.5 text-green-400" /> : <ArrowUpRight className="w-3.5 h-3.5 text-red-400" />}
+                    </div>
+                    <div>
+                      <p className="text-sm text-[#F1F5F9]">{tx.description ?? (tx.type === "credit" ? "Guthaben erhalten" : "Guthaben verwendet")}</p>
+                      <p className="text-xs text-[#64748B]">{tx.createdAt ? new Date(tx.createdAt).toLocaleDateString("de-DE") : ""}</p>
+                    </div>
+                  </div>
+                  <span className={`text-sm font-semibold ${tx.type === "credit" ? "text-green-400" : "text-red-400"}`}>
+                    {tx.type === "credit" ? "+" : "-"}{Math.abs(tx.amount).toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Shop Credits */}
+      <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#1E293B]">
+          <h3 className="text-sm font-semibold text-[#F1F5F9]">Shop-Guthaben</h3>
+          <p className="text-xs text-[#64748B] mt-0.5">Guthaben das dir von einzelnen Shops vergeben wurde</p>
+        </div>
+        <div className="px-5 py-4">
+          {scLoading ? (
+            <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 text-indigo-400 animate-spin" /></div>
+          ) : shopCreditsList.length === 0 ? (
+            <div className="text-center py-8">
+              <Store className="w-8 h-8 text-[#64748B] mx-auto mb-2" />
+              <p className="text-sm text-[#64748B]">Noch kein Shop-Guthaben erhalten</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {shopCreditsList.map((sc: any) => (
+                <div key={sc.shopId} className="bg-[#1A2235] rounded-lg border border-[#1E293B] p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Store className="w-4 h-4 text-[#64748B]" />
+                      <span className="text-sm font-medium text-[#F1F5F9]">{sc.shopName ?? `Shop #${sc.shopId}`}</span>
+                    </div>
+                    <span className="text-lg font-bold text-violet-400">{sc.balance.toFixed(2)} <span className="text-xs font-normal text-[#64748B]">Credits</span></span>
+                  </div>
+                  {sc.history && sc.history.length > 0 && (
+                    <div className="space-y-1.5 mt-2 border-t border-[#1E293B] pt-2">
+                      {sc.history.slice(0, 3).map((tx: any) => (
+                        <div key={tx.id} className="flex items-center justify-between text-xs">
+                          <span className="text-[#64748B]">{tx.description ?? "Guthaben"}</span>
+                          <span className={tx.type === "credit" ? "text-green-400" : "text-red-400"}>
+                            {tx.type === "credit" ? "+" : "-"}{Math.abs(tx.amount).toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function UserDashboard() {
   const { tab } = useParams<{ tab?: string }>();
@@ -836,6 +952,7 @@ export default function UserDashboard() {
     payments: "Zahlungen & Rechnungen",
     security: "Sicherheit",
     settings: "Einstellungen",
+    credits: "Mein Guthaben",
   };
 
   return (
@@ -914,6 +1031,7 @@ export default function UserDashboard() {
             {activeTab === "payments" && <PaymentsTab ordersData={ordersData} ordersLoading={ordersLoading} />}
             {activeTab === "security" && <SecurityTab user={user} />}
             {activeTab === "settings" && <SettingsTab user={user} />}
+            {activeTab === "credits" && <CreditsTab user={user} />}
           </div>
         </main>
       </div>

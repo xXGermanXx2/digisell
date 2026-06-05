@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import {
   Search, MoreVertical, Shield, Ban, CheckCircle, Loader2, Users,
   Trash2, Eye, AlertTriangle, X, ChevronLeft, ChevronRight,
-  Crown, Star, Zap, Infinity as InfinityIcon
+  Crown, Star, Zap, Infinity as InfinityIcon, Coins, Plus, Minus
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,6 +51,8 @@ export default function AdminUsers() {
   const [planForm, setPlanForm] = useState({ plan: "free", expiresAt: "", isLifetime: false, notes: "" });
   const [showLimitsModal, setShowLimitsModal] = useState(false);
   const [limitsForm, setLimitsForm] = useState({ shopLimit: 1, productLimit: 10, storageLimit: 500 });
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
+  const [creditsForm, setCreditsForm] = useState({ amount: "", description: "", action: "credit" as "credit" | "debit" });
 
   const { data, isLoading } = trpc.admin.listUsers.useQuery({
     search: search || undefined,
@@ -93,6 +95,14 @@ export default function AdminUsers() {
   });
   const revokePremium = trpc.subscription.adminRevokePremium.useMutation({
     onSuccess: () => { toast.success("Premium entzogen"); utils.admin.listUsers.invalidate(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const grantCredits = trpc.credits.adminGrantPlatformCredits.useMutation({
+    onSuccess: () => { toast.success("Guthaben gutgeschrieben ✓"); setShowCreditsModal(false); setCreditsForm({ amount: "", description: "", action: "credit" }); },
+    onError: (e) => toast.error(e.message),
+  });
+  const deductCredits = trpc.credits.adminDeductPlatformCredits.useMutation({
+    onSuccess: () => { toast.success("Guthaben abgezogen ✓"); setShowCreditsModal(false); setCreditsForm({ amount: "", description: "", action: "credit" }); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -263,6 +273,11 @@ export default function AdminUsers() {
                                 <Star className="w-4 h-4 mr-2" /> Premium entziehen
                               </DropdownMenuItem>
                             )}
+                            <DropdownMenuSeparator className="bg-[#2D3748]" />
+                            <DropdownMenuItem onClick={() => { setSelectedUser(user); setCreditsForm({ amount: "", description: "", action: "credit" }); setShowCreditsModal(true); }}
+                              className="text-emerald-400 hover:bg-[#2D3748] cursor-pointer">
+                              <Coins className="w-4 h-4 mr-2" /> Guthaben vergeben
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-[#2D3748]" />
                             <DropdownMenuItem
                               onClick={() => { if (confirm("Benutzer wirklich löschen?")) deleteUser.mutate({ id: user.id }); }}
@@ -474,6 +489,69 @@ export default function AdminUsers() {
                   className="bg-yellow-600 hover:bg-yellow-700 text-white"
                 >
                   {sendWarning.isPending ? "Sende..." : "Warnung senden"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Credits Modal */}
+      {showCreditsModal && selectedUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-[#1E293B] rounded-xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1E293B]">
+              <h2 className="text-base font-semibold text-[#F1F5F9] flex items-center gap-2">
+                <Coins className="w-4 h-4 text-emerald-400" /> Plattform-Guthaben
+              </h2>
+              <Button variant="ghost" size="sm" onClick={() => setShowCreditsModal(false)} className="text-[#64748B]"><X className="w-4 h-4" /></Button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-[#94A3B8]">Nutzer: <span className="text-[#F1F5F9] font-medium">{selectedUser.name ?? selectedUser.email}</span></p>
+              {/* Action Toggle */}
+              <div className="flex gap-2 p-1 bg-[#0F172A] rounded-lg">
+                <button onClick={() => setCreditsForm(f => ({ ...f, action: "credit" }))}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-medium transition-colors ${
+                    creditsForm.action === "credit" ? "bg-emerald-600 text-white" : "text-[#64748B] hover:text-[#F1F5F9]"
+                  }`}>
+                  <Plus className="w-3.5 h-3.5" /> Gutschreiben
+                </button>
+                <button onClick={() => setCreditsForm(f => ({ ...f, action: "debit" }))}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-medium transition-colors ${
+                    creditsForm.action === "debit" ? "bg-red-600 text-white" : "text-[#64748B] hover:text-[#F1F5F9]"
+                  }`}>
+                  <Minus className="w-3.5 h-3.5" /> Abziehen
+                </button>
+              </div>
+              <div>
+                <label className="block text-xs text-[#64748B] mb-1.5">Betrag (Credits)</label>
+                <input type="number" min="1" value={creditsForm.amount}
+                  onChange={e => setCreditsForm(f => ({ ...f, amount: e.target.value }))}
+                  placeholder="z.B. 100"
+                  className="w-full bg-[#0F172A] border border-[#1E293B] text-[#F1F5F9] rounded-lg px-3 py-2 text-sm placeholder:text-[#64748B]" />
+              </div>
+              <div>
+                <label className="block text-xs text-[#64748B] mb-1.5">Beschreibung (optional)</label>
+                <input value={creditsForm.description}
+                  onChange={e => setCreditsForm(f => ({ ...f, description: e.target.value }))}
+                  placeholder="z.B. Bonus für treue Nutzung"
+                  className="w-full bg-[#0F172A] border border-[#1E293B] text-[#F1F5F9] rounded-lg px-3 py-2 text-sm placeholder:text-[#64748B]" />
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <Button variant="outline" onClick={() => setShowCreditsModal(false)} className="border-[#1E293B] text-[#94A3B8]">Abbrechen</Button>
+                <Button
+                  onClick={() => {
+                    const amt = parseInt(creditsForm.amount);
+                    if (!amt || amt < 1) return toast.error("Ungültiger Betrag");
+                    if (creditsForm.action === "credit") {
+                      grantCredits.mutate({ userId: selectedUser.id, amount: amt, description: creditsForm.description || undefined });
+                    } else {
+                      deductCredits.mutate({ userId: selectedUser.id, amount: amt, description: creditsForm.description || undefined });
+                    }
+                  }}
+                  disabled={grantCredits.isPending || deductCredits.isPending}
+                  className={creditsForm.action === "credit" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"}
+                >
+                  {(grantCredits.isPending || deductCredits.isPending) ? <Loader2 className="w-4 h-4 animate-spin" /> : creditsForm.action === "credit" ? "Gutschreiben" : "Abziehen"}
                 </Button>
               </div>
             </div>

@@ -12,6 +12,7 @@ import {
   LayoutDashboard, Store, Package, ShoppingCart, Users, DollarSign, Ticket, Tag, BarChart2,
   Settings, LogOut, Plus, Edit, Trash2, Eye, ExternalLink, TrendingUp, Loader2, AlertCircle,
   ChevronRight, Check, X, Globe, Menu, Home, Key, FileText, Upload, ChevronDown, ChevronUp,
+  Coins, Minus, History,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { id: "orders", label: "Bestellungen", icon: ShoppingCart },
   { id: "customers", label: "Kunden", icon: Users },
   { id: "payments", label: "Zahlungen", icon: DollarSign },
+  { id: "credits", label: "Shop-Guthaben", icon: Coins },
   { id: "coupons", label: "Gutscheine", icon: Tag },
   { id: "tickets", label: "Tickets", icon: Ticket },
   { id: "analytics", label: "Analytics", icon: BarChart2 },
@@ -851,6 +853,120 @@ function AnalyticsTab() {
   );
 }
 
+// ── Credits Tab ─────────────────────────────────────────────────────────────
+function CreditsTab() {
+  const { data: shop } = trpc.seller.getMyShop.useQuery();
+  const { data: balance, refetch: refetchBalance } = trpc.credits.getShopCreditBalance.useQuery(
+    { shopId: shop?.id ?? 0 },
+    { enabled: !!shop?.id }
+  );
+  const { data: history, refetch: refetchHistory } = trpc.credits.getShopCreditHistory.useQuery(
+    { shopId: shop?.id ?? 0 },
+    { enabled: !!shop?.id }
+  );
+  const { data: customers } = trpc.seller.getMyCustomers.useQuery({ page: 1, limit: 100 });
+  const grantCredits = trpc.credits.sellerGrantShopCredits.useMutation({
+    onSuccess: () => { setForm({ userId: "", amount: "", description: "" }); refetchBalance(); refetchHistory(); },
+    onError: (e) => alert("Fehler: " + e.message),
+  });
+  const [form, setForm] = useState({ userId: "", amount: "", description: "" });
+
+  if (!shop) return (
+    <div className="flex flex-col items-center justify-center h-64 text-center">
+      <Store className="w-12 h-12 text-gray-600 mb-3" />
+      <p className="text-gray-400">Kein Shop vorhanden. Erstelle zuerst einen Shop.</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl sm:text-2xl font-bold text-white">Shop-Guthaben</h2>
+
+      {/* Balance Card */}
+      <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-1">
+          <Coins className="w-6 h-6 text-emerald-400" />
+          <span className="text-gray-400 text-sm">Gesamtes Shop-Guthaben vergeben</span>
+        </div>
+        <p className="text-4xl font-bold text-white">{(balance?.totalGranted ?? 0).toLocaleString("de-DE")}</p>
+        <p className="text-emerald-400 text-sm mt-1">Credits im Umlauf: {(balance?.totalOutstanding ?? 0).toLocaleString("de-DE")}</p>
+      </div>
+
+      {/* Grant Credits Form */}
+      <div className="bg-[#1A2235] rounded-xl border border-[#2D3748] p-5">
+        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+          <Plus className="w-4 h-4 text-emerald-400" /> Guthaben an Kunden vergeben
+        </h3>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1.5">Kunde auswählen</label>
+            <select value={form.userId} onChange={e => setForm(f => ({ ...f, userId: e.target.value }))}
+              className="w-full bg-[#0A0E1A] border border-[#2D3748] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+              <option value="">-- Kunde wählen --</option>
+              {customers?.items.map(c => (
+                <option key={c.id} value={String(c.id)}>{c.name ?? c.email} ({c.email})</option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1.5">Betrag (Credits)</label>
+              <input type="number" min="1" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+                placeholder="z.B. 50"
+                className="w-full bg-[#0A0E1A] border border-[#2D3748] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1.5">Beschreibung (optional)</label>
+              <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="z.B. Treueprämie"
+                className="w-full bg-[#0A0E1A] border border-[#2D3748] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500" />
+            </div>
+          </div>
+          <Button
+            onClick={() => {
+              const amt = parseInt(form.amount);
+              if (!form.userId || !amt || amt < 1) return alert("Bitte Kunde und gültigen Betrag angeben");
+              grantCredits.mutate({ shopId: shop.id, userId: parseInt(form.userId), amount: amt, description: form.description || undefined });
+            }}
+            disabled={grantCredits.isPending || !form.userId || !form.amount}
+            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            {grantCredits.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Coins className="w-4 h-4 mr-2" />Guthaben vergeben</>}
+          </Button>
+        </div>
+      </div>
+
+      {/* History */}
+      <div className="bg-[#1A2235] rounded-xl border border-[#2D3748] p-5">
+        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+          <History className="w-4 h-4 text-gray-400" /> Vergabe-Verlauf
+        </h3>
+        {!history?.length ? (
+          <div className="text-center py-8 text-gray-500 text-sm">
+            <Coins className="w-8 h-8 mx-auto mb-2 opacity-30" />
+            Noch keine Guthaben vergeben
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {history.map((h: any) => (
+              <div key={h.id} className="flex items-center justify-between gap-2 bg-[#0A0E1A] rounded-lg px-4 py-2.5 border border-[#2D3748]">
+                <div className="min-w-0">
+                  <p className="text-white text-sm font-medium truncate">{h.recipientName ?? h.recipientEmail}</p>
+                  {h.description && <p className="text-gray-500 text-xs truncate">{h.description}</p>}
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-emerald-400 font-semibold text-sm">+{h.amount.toLocaleString("de-DE")} Credits</p>
+                  <p className="text-gray-600 text-xs">{new Date(h.createdAt).toLocaleDateString("de-DE")}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Settings Tab ──────────────────────────────────────────────────────────────
 function SettingsTab() {
   const { data: shop, refetch } = trpc.seller.getMyShop.useQuery();
@@ -949,6 +1065,7 @@ export default function SellerDashboard() {
       case "tickets": return <TicketsTab />;
       case "analytics": return <AnalyticsTab />;
       case "settings": return <SettingsTab />;
+      case "credits": return <CreditsTab />;
       default: return <OverviewTab />;
     }
   };

@@ -715,3 +715,61 @@ export const subscriptionAuditLogs = mysqlTable("subscription_audit_logs", {
 
 export type PlatformSubscription = typeof platformSubscriptions.$inferSelect;
 export type SubscriptionAuditLog = typeof subscriptionAuditLogs.$inferSelect;
+
+// ===================== PLATFORM CREDITS =====================
+export const platformCredits = mysqlTable("platform_credits", {
+  id: serial("id").primaryKey(),
+  userId: bigint("user_id", { mode: "number", unsigned: true }).references(() => users.id, { onDelete: "cascade" }).notNull(),
+  balance: decimal("balance", { precision: 12, scale: 2 }).notNull().default("0"),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+}, (t) => ({
+  userIdx: index("platform_credits_user_idx").on(t.userId),
+}));
+
+export const platformCreditTransactions = mysqlTable("platform_credit_transactions", {
+  id: serial("id").primaryKey(),
+  userId: bigint("user_id", { mode: "number", unsigned: true }).references(() => users.id, { onDelete: "cascade" }).notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  type: mysqlEnum("type", ["credit", "debit", "purchase"]).notNull().default("credit"),
+  description: varchar("description", { length: 500 }),
+  grantedByAdminId: bigint("granted_by_admin_id", { mode: "number", unsigned: true }).references(() => users.id),
+  orderId: bigint("order_id", { mode: "number", unsigned: true }).references(() => orders.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => ({
+  userIdx: index("platform_credit_tx_user_idx").on(t.userId),
+  createdAtIdx: index("platform_credit_tx_created_at_idx").on(t.createdAt),
+}));
+
+// ===================== SHOP CREDITS =====================
+export const shopCredits = mysqlTable("shop_credits", {
+  id: serial("id").primaryKey(),
+  shopId: bigint("shop_id", { mode: "number", unsigned: true }).references(() => shops.id, { onDelete: "cascade" }).notNull(),
+  userId: bigint("user_id", { mode: "number", unsigned: true }).references(() => users.id, { onDelete: "cascade" }).notNull(),
+  balance: decimal("balance", { precision: 12, scale: 2 }).notNull().default("0"),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+}, (t) => ({
+  shopUserIdx: index("shop_credits_shop_user_idx").on(t.shopId, t.userId),
+  userIdx: index("shop_credits_user_idx").on(t.userId),
+  shopIdx: index("shop_credits_shop_idx").on(t.shopId),
+}));
+
+export const shopCreditTransactions = mysqlTable("shop_credit_transactions", {
+  id: serial("id").primaryKey(),
+  shopId: bigint("shop_id", { mode: "number", unsigned: true }).references(() => shops.id, { onDelete: "cascade" }).notNull(),
+  userId: bigint("user_id", { mode: "number", unsigned: true }).references(() => users.id, { onDelete: "cascade" }).notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  type: mysqlEnum("type", ["credit", "debit", "purchase"]).notNull().default("credit"),
+  description: varchar("description", { length: 500 }),
+  grantedBySellerId: bigint("granted_by_seller_id", { mode: "number", unsigned: true }).references(() => users.id),
+  orderId: bigint("order_id", { mode: "number", unsigned: true }).references(() => orders.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => ({
+  shopUserIdx: index("shop_credit_tx_shop_user_idx").on(t.shopId, t.userId),
+  userIdx: index("shop_credit_tx_user_idx").on(t.userId),
+  createdAtIdx: index("shop_credit_tx_created_at_idx").on(t.createdAt),
+}));
+
+export type PlatformCredit = typeof platformCredits.$inferSelect;
+export type PlatformCreditTransaction = typeof platformCreditTransactions.$inferSelect;
+export type ShopCredit = typeof shopCredits.$inferSelect;
+export type ShopCreditTransaction = typeof shopCreditTransactions.$inferSelect;

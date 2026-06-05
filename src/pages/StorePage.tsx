@@ -1,4 +1,5 @@
 import { useParams, Link } from "react-router";
+import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/providers/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,8 @@ import {
   Download,
   Zap,
   Shield,
+  Coins,
+  Wallet,
 } from "lucide-react";
 
 function formatCurrency(val: number, currency = "EUR") {
@@ -69,6 +72,14 @@ export default function StorePage() {
   }
 
   const { shop, products } = data;
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { user } = useAuth({});
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { data: shopCredits } = trpc.credits.getMyShopCredits.useQuery(
+    { shopId: shop.id },
+    { enabled: !!user && !!shop.id }
+  );
+  const myShopBalance = shopCredits?.balance ?? 0;
 
   return (
     <div className="min-h-screen bg-[#0A0E1A]">
@@ -86,9 +97,17 @@ export default function StorePage() {
             <span className="text-white font-semibold text-sm">{shop.name}</span>
             <Badge className="bg-green-500/20 text-green-400 text-xs hidden sm:flex">Aktiv</Badge>
           </div>
-          <div className="flex items-center gap-1 text-gray-500 text-xs">
-            <Globe className="w-3 h-3" />
-            <span className="hidden sm:inline">digisell.app/store/{shop.slug}</span>
+          <div className="flex items-center gap-3">
+            {user && myShopBalance > 0 && (
+              <div className="flex items-center gap-1.5 bg-violet-500/10 border border-violet-500/20 rounded-full px-3 py-1">
+                <Coins className="w-3.5 h-3.5 text-violet-400" />
+                <span className="text-xs font-semibold text-violet-400">{myShopBalance.toFixed(2)} Credits</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1 text-gray-500 text-xs">
+              <Globe className="w-3 h-3" />
+              <span className="hidden sm:inline">digisell.app/store/{shop.slug}</span>
+            </div>
           </div>
         </div>
       </header>
@@ -141,6 +160,18 @@ export default function StorePage() {
           </div>
         </div>
 
+        {/* Shop-Guthaben Banner (nur wenn eingeloggt und Guthaben vorhanden) */}
+        {user && myShopBalance > 0 && (
+          <div className="mb-6 bg-violet-500/10 border border-violet-500/20 rounded-xl p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center flex-shrink-0">
+              <Wallet className="w-5 h-5 text-violet-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-violet-300">Du hast <span className="text-violet-400">{myShopBalance.toFixed(2)} Credits</span> in diesem Shop</p>
+              <p className="text-xs text-violet-400/70 mt-0.5">Dein Shop-Guthaben kann beim Kauf von Produkten in diesem Shop eingesetzt werden.</p>
+            </div>
+          </div>
+        )}
         {/* Produkte */}
         <div className="mb-16">
           <h2 className="text-lg sm:text-xl font-bold text-white mb-4">

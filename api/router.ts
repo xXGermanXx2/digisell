@@ -18,6 +18,7 @@ import { uploadRouter } from "./upload-router";
 import { invoiceRouter } from "./invoice-router";
 import { systemRouter } from "./system-router";
 import { sellerRouter } from "./seller-router";
+import { creditsRouter } from "./credits-router";
 import { createRouter, publicQuery } from "./middleware";
 
 export const appRouter = createRouter({
@@ -42,6 +43,7 @@ export const appRouter = createRouter({
   invoice: invoiceRouter,
   system: systemRouter,
   seller: sellerRouter,
+  credits: creditsRouter,
 });
 
 export type AppRouter = typeof appRouter;
