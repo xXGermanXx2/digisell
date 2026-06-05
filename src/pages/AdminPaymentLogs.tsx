@@ -47,16 +47,16 @@ export default function AdminPaymentLogs() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <CreditCard className="w-7 h-7 text-indigo-400" />
+          <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-3">
+            <CreditCard className="w-6 h-6 sm:w-7 sm:h-7 shrink-0 text-indigo-400" />
             Zahlungsprotokolle
           </h1>
           <p className="text-white/50 text-sm mt-1">Vollständige Zahlungshistorie aller Transaktionen</p>
         </div>
-        <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 text-sm bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors">
+        <button onClick={() => refetch()} className="flex w-full sm:w-auto items-center justify-center gap-2 px-3 py-2 text-sm bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors">
           <RefreshCw className="w-4 h-4" /> Aktualisieren
         </button>
       </div>
@@ -83,11 +83,11 @@ export default function AdminPaymentLogs() {
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 bg-white/5 border border-white/10 rounded-xl p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-3 bg-white/5 border border-white/10 rounded-xl p-4">
         <select
           value={provider}
           onChange={e => { setProvider(e.target.value); setPage(1); }}
-          className="bg-white/10 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full bg-white/10 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           <option value="all">Alle Anbieter</option>
           <option value="stripe">Stripe</option>
@@ -98,7 +98,7 @@ export default function AdminPaymentLogs() {
         <select
           value={status}
           onChange={e => { setStatus(e.target.value); setPage(1); }}
-          className="bg-white/10 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full bg-white/10 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           <option value="all">Alle Status</option>
           <option value="completed">Erfolgreich</option>
@@ -110,21 +110,21 @@ export default function AdminPaymentLogs() {
           type="date"
           value={dateFrom}
           onChange={e => { setDateFrom(e.target.value); setPage(1); }}
-          className="bg-white/10 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full bg-white/10 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           placeholder="Von"
         />
         <input
           type="date"
           value={dateTo}
           onChange={e => { setDateTo(e.target.value); setPage(1); }}
-          className="bg-white/10 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full bg-white/10 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           placeholder="Bis"
         />
       </div>
 
       {/* Table */}
       <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto"><table className="min-w-[760px] w-full text-sm">
+        <div className="overflow-x-auto overscroll-x-contain"><table className="min-w-[720px] w-full text-sm">
           <thead>
             <tr className="border-b border-white/10 bg-white/5">
               <th className="text-left p-4 text-white/50 font-medium">ID</th>
@@ -176,7 +176,7 @@ export default function AdminPaymentLogs() {
           <p className="text-sm text-white/40">
             Seite {page} von {totalPages} · {data?.total ?? 0} Einträge
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}

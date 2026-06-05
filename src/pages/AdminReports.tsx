@@ -29,9 +29,9 @@ export default function AdminReports() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+        <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
           <Flag className="w-6 h-6 text-red-400" /> Meldungen & Moderation
         </h1>
         <p className="text-gray-400 text-sm mt-1">Gemeldete Inhalte prüfen und moderieren</p>
@@ -120,7 +120,7 @@ export default function AdminReports() {
       </Card>
 
       {data && data.total > 20 && (
-        <div className="flex justify-center gap-2">
+        <div className="flex flex-wrap justify-center gap-2">
           <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)} className="border-gray-700 text-gray-300">Zurück</Button>
           <span className="text-gray-400 text-sm self-center">Seite {page} / {Math.ceil(data.total / 20)}</span>
           <Button variant="outline" size="sm" disabled={page >= Math.ceil(data.total / 20)} onClick={() => setPage(p => p + 1)} className="border-gray-700 text-gray-300">Weiter</Button>

@@ -113,7 +113,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       )}
 
       {/* Main Content */}
-      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+      <div className="flex-1 min-w-0 w-full lg:ml-64 flex flex-col min-h-screen">
         {/* Mobile Header */}
         <header className="lg:hidden flex items-center gap-3 h-14 px-3 sm:px-4 bg-[#0F172A] border-b border-[#1E293B] sticky top-0 z-20">
           <button onClick={() => setMobileMenuOpen(true)} className="min-h-10 min-w-10 inline-flex items-center justify-center rounded-lg text-[#94A3B8] hover:bg-[#1A2235] hover:text-[#F1F5F9]">
@@ -122,7 +122,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <span className="min-w-0 truncate text-base font-bold bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">DigiSell Admin</span>
         </header>
 
-        <main className="flex-1 overflow-x-hidden p-3 sm:p-4 lg:p-6">
+        <main className="flex-1 min-w-0 w-full max-w-full overflow-x-hidden p-3 sm:p-4 lg:p-6">
           {children}
         </main>
       </div>

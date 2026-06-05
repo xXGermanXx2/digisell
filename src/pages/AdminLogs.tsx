@@ -39,17 +39,17 @@ export default function AdminLogs() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
+      <div className="min-w-0 space-y-6">
+      <div className="w-full max-w-7xl mx-auto min-w-0">
+        <div className="flex flex-wrap items-center gap-3 mb-6">
           <FileText className="w-6 h-6 text-indigo-400" />
-          <h1 className="text-2xl font-bold text-white">System-Logs</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">System-Logs</h1>
         </div>
 
         <Card className="bg-slate-900 border-slate-800 mb-4">
           <CardContent className="pt-4 pb-4">
             <div className="flex gap-3 flex-wrap">
-              <div className="relative flex-1 min-w-48">
+              <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
                   placeholder="Suchen..." className="pl-9 bg-slate-800 border-slate-700 text-white" />
@@ -67,12 +67,12 @@ export default function AdminLogs() {
                 </SelectContent>
               </Select>
               <Input value={action} onChange={e => { setAction(e.target.value); setPage(1); }}
-                placeholder="Aktion filtern..." className="w-48 bg-slate-800 border-slate-700 text-white" />
+                placeholder="Aktion filtern..." className="w-full sm:w-48 bg-slate-800 border-slate-700 text-white" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-slate-900 border-slate-800 overflow-hidden">
           <CardContent className="p-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 text-indigo-500 animate-spin" /></div>

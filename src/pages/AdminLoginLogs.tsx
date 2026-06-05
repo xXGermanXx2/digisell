@@ -14,9 +14,9 @@ export default function AdminLoginLogs() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+        <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
           <Shield className="w-6 h-6 text-blue-400" /> Login-Protokolle
         </h1>
         <p className="text-gray-400 text-sm mt-1">Alle Anmeldeversuche überwachen</p>
@@ -24,7 +24,7 @@ export default function AdminLoginLogs() {
 
       <Card className="bg-gray-900 border-gray-800">
         <CardContent className="pt-4">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button size="sm" variant={success === undefined ? "default" : "outline"} onClick={() => setSuccess(undefined)}
               className={success === undefined ? "bg-purple-600" : "border-gray-700 text-gray-300"}>Alle</Button>
             <Button size="sm" variant={success === true ? "default" : "outline"} onClick={() => setSuccess(true)}
@@ -77,7 +77,7 @@ export default function AdminLoginLogs() {
       </Card>
 
       {data && data.total > 50 && (
-        <div className="flex justify-center gap-2">
+        <div className="flex flex-wrap justify-center gap-2">
           <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)} className="border-gray-700 text-gray-300">Zurück</Button>
           <span className="text-gray-400 text-sm self-center">Seite {page} / {Math.ceil(data.total / 50)}</span>
           <Button variant="outline" size="sm" disabled={page >= Math.ceil(data.total / 50)} onClick={() => setPage(p => p + 1)} className="border-gray-700 text-gray-300">Weiter</Button>

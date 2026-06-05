@@ -39,10 +39,10 @@ export default function AdminShops() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
             <Store className="w-6 h-6 text-purple-400" /> Shopverwaltung
           </h1>
           <p className="text-gray-400 text-sm mt-1">Alle Shops verwalten, sperren und überwachen</p>
@@ -53,7 +53,7 @@ export default function AdminShops() {
       <Card className="bg-gray-900 border-gray-800">
         <CardContent className="pt-4">
           <div className="flex gap-3 flex-wrap">
-            <div className="relative flex-1 min-w-48">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input placeholder="Shop suchen..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
                 className="pl-9 bg-gray-800 border-gray-700 text-white" />
@@ -110,7 +110,7 @@ export default function AdminShops() {
                     {new Date(shop.createdAt!).toLocaleDateString("de-DE")}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex gap-2 justify-end">
+                    <div className="flex flex-wrap gap-2 justify-end">
                       <Button size="sm" variant="ghost" className="text-blue-400 hover:text-blue-300"
                         onClick={() => setSelectedShop(shop.id)}>
                         <Eye className="w-4 h-4" />
@@ -144,7 +144,7 @@ export default function AdminShops() {
 
       {/* Pagination */}
       {data && data.total > 20 && (
-        <div className="flex justify-center gap-2">
+        <div className="flex flex-wrap justify-center gap-2">
           <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}
             className="border-gray-700 text-gray-300">Zurück</Button>
           <span className="text-gray-400 text-sm self-center">Seite {page} / {Math.ceil(data.total / 20)}</span>
@@ -190,7 +190,7 @@ export default function AdminShops() {
                 <div><span className="text-gray-400">Inhaber:</span> <span className="text-white ml-2">{(shopDetail.shop as any).owner?.name}</span></div>
                 <div><span className="text-gray-400">Status:</span> <span className="text-white ml-2">{shopDetail.shop.status}</span></div>
               </div>
-              <div className="flex gap-2 justify-end">
+              <div className="flex flex-wrap gap-2 justify-end">
                 {shopDetail.shop.status === "active" ? (
                   <Button variant="destructive" size="sm"
                     onClick={() => updateStatus.mutate({ id: shopDetail.shop.id, status: "suspended" })}>
