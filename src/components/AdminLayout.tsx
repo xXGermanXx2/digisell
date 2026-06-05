@@ -18,6 +18,7 @@ const adminNavItems = [
   { path: "/admin/subscriptions", label: "Abonnements", icon: RefreshCw },
   { path: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { path: "/admin/logs", label: "Logs", icon: FileText },
+  { path: "/admin/security", label: "Sicherheit", icon: Shield },
   { path: "/admin/system", label: "System", icon: Activity },
   { path: "/admin/settings", label: "Einstellungen", icon: Settings },
 ];

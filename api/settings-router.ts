@@ -8,9 +8,7 @@ export const settingsRouter = createRouter({
   get: publicQuery.query(async () => {
     const db = getDb();
     const settings = await db.query.shopSettings.findFirst();
-    
     if (!settings) {
-      // Create default settings
       await db.insert(shopSettings).values({
         shopName: "DigiSell",
         currency: "EUR",
@@ -18,7 +16,6 @@ export const settingsRouter = createRouter({
       });
       return db.query.shopSettings.findFirst();
     }
-    
     return settings;
   }),
 
@@ -32,33 +29,42 @@ export const settingsRouter = createRouter({
         currency: z.string().length(3).optional(),
         timezone: z.string().optional(),
         feePercentage: z.string().optional(),
+        taxRate: z.string().optional(),
+        taxIncluded: z.boolean().optional(),
         theme: z.enum(["dark", "light", "auto"]).optional(),
         maintenanceMode: z.boolean().optional(),
+        // E-Mail
+        smtpHost: z.string().optional(),
+        smtpPort: z.number().int().optional(),
+        smtpUser: z.string().optional(),
+        smtpPass: z.string().optional(),
+        smtpFrom: z.string().optional(),
+        // Zahlungsanbieter
+        stripePublicKey: z.string().optional(),
+        stripeSecretKey: z.string().optional(),
+        stripeWebhookSecret: z.string().optional(),
+        paypalClientId: z.string().optional(),
+        paypalSecret: z.string().optional(),
+        paypalMode: z.enum(["sandbox", "live"]).optional(),
+        cryptoBtcAddress: z.string().optional(),
+        cryptoEthAddress: z.string().optional(),
+        cryptoSolAddress: z.string().optional(),
       })
     )
     .mutation(async ({ input }) => {
       const db = getDb();
-      
       const existing = await db.query.shopSettings.findFirst();
-      
+      const data: any = { ...input, updatedAt: new Date() };
       if (existing) {
-        await db.update(shopSettings)
-          .set({ ...input, updatedAt: new Date() })
-          .where(eq(shopSettings.id, existing.id));
+        await db.update(shopSettings).set(data).where(eq(shopSettings.id, existing.id));
       } else {
         await db.insert(shopSettings).values({
           shopName: input.shopName ?? "DigiSell",
-          shopDescription: input.shopDescription ?? null,
-          logo: input.logo ?? null,
-          favicon: input.favicon ?? null,
           currency: input.currency ?? "EUR",
           timezone: input.timezone ?? "Europe/Berlin",
-          feePercentage: input.feePercentage ? parseFloat(input.feePercentage).toFixed(2) : "5.00",
-          theme: input.theme ?? "dark",
-          maintenanceMode: input.maintenanceMode ?? false,
+          ...data,
         });
       }
-      
       return { success: true };
     }),
 });

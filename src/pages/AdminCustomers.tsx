@@ -3,7 +3,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { Loader2, Users } from "lucide-react";
 
 export default function AdminCustomers() {
-  const { data: ordersData } = trpc.order.list.useQuery({ status: "all", limit: 100 });
+  const { data: ordersData } = trpc.order.adminList.useQuery({ limit: 100 });
   const { data: settings } = trpc.settings.get.useQuery();
 
   const customers = ordersData?.items?.reduce((acc: any[], order) => {

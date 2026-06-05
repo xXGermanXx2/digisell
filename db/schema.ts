@@ -773,3 +773,17 @@ export type PlatformCredit = typeof platformCredits.$inferSelect;
 export type PlatformCreditTransaction = typeof platformCreditTransactions.$inferSelect;
 export type ShopCredit = typeof shopCredits.$inferSelect;
 export type ShopCreditTransaction = typeof shopCreditTransactions.$inferSelect;
+
+// ===================== BLOCKLISTS =====================
+export const blocklists = mysqlTable("blocklists", {
+  id: serial("id").primaryKey(),
+  type: mysqlEnum("type", ["ip", "email", "domain"]).notNull(),
+  value: varchar("value", { length: 255 }).notNull(),
+  reason: text("reason"),
+  createdBy: bigint("created_by", { mode: "number", unsigned: true }).references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => ({
+  typeIdx: index("type_idx").on(t.type),
+  valueIdx: index("value_idx").on(t.value),
+}));
+export type Blocklist = typeof blocklists.$inferSelect;

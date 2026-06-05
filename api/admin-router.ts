@@ -8,7 +8,7 @@ import {
   products, categories, reviews, tickets, ticketMessages,
   subscriptions, coupons, fraudRules, shopSettings,
   deliveryLogs, licenseKeys, webhooks,
-  shops, reports, loginLogs, adminRoles, moderationLogs,
+  shops, reports, loginLogs, adminRoles, moderationLogs, blocklists,
 } from "@db/schema";
 import { Errors } from "@contracts/errors";
 import { sendEmail } from "./lib/email";
@@ -1574,5 +1574,56 @@ export const adminRouter = createRouter({
           timestamp: new Date().toISOString(),
         },
       };
+    }),
+
+  // ═══════════════════════════════════════════════════════════
+  // BLOCKLISTS — IP, E-Mail, Domain sperren
+  // ═══════════════════════════════════════════════════════════
+
+  listBlocklists: adminQuery
+    .input(z.object({ type: z.enum(["ip", "email", "domain"]).optional() }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const where = input.type ? eq(blocklists.type, input.type) : undefined;
+      const items = await db.query.blocklists.findMany({
+        where,
+        orderBy: [desc(blocklists.createdAt)],
+      });
+      return items;
+    }),
+
+  addBlocklist: adminQuery
+    .input(z.object({
+      type: z.enum(["ip", "email", "domain"]),
+      value: z.string().min(1).max(255),
+      reason: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      await db.insert(blocklists).values({
+        type: input.type,
+        value: input.value,
+        reason: input.reason,
+        createdBy: ctx.user.id,
+      });
+      await db.insert(systemLogs).values({
+        level: "warn", category: "admin",
+        message: `Admin ${ctx.user.id} added ${input.type} blocklist entry: ${input.value}`,
+        metadata: { adminId: ctx.user.id, type: input.type, value: input.value },
+      });
+      return { success: true };
+    }),
+
+  deleteBlocklist: adminQuery
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      await db.delete(blocklists).where(eq(blocklists.id, input.id));
+      await db.insert(systemLogs).values({
+        level: "info", category: "admin",
+        message: `Admin ${ctx.user.id} removed blocklist entry ${input.id}`,
+        metadata: { adminId: ctx.user.id, blocklistId: input.id },
+      });
+      return { success: true };
     }),
 });

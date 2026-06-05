@@ -31,6 +31,7 @@ import AdminShops from "./pages/AdminShops";
 import AdminReports from "./pages/AdminReports";
 import AdminLoginLogs from "./pages/AdminLoginLogs";
 import AdminRoles from "./pages/AdminRoles";
+import AdminSecurity from "./pages/AdminSecurity";
 import SellerDashboard from "./pages/SellerDashboard";
 import ShopSetupWizard from "./pages/ShopSetupWizard";
 import StorePage from "./pages/StorePage";
@@ -88,6 +89,7 @@ export default function App() {
         <Route path="/admin/reports" element={<AdminReports />} />
         <Route path="/admin/login-logs" element={<AdminLoginLogs />} />
         <Route path="/admin/roles" element={<AdminRoles />} />
+        <Route path="/admin/security" element={<AdminSecurity />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

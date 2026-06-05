@@ -5,7 +5,7 @@ import {
   licenseKeys, apiKeys, refreshTokens, productVariants, productFiles,
   affiliates, affiliateClicks, affiliateCommissions, affiliatePayouts,
   subscriptions, webhooks, webhookLogs, systemLogs, paymentLogs,
-  downloadLogs, deliveryLogs,
+  downloadLogs, deliveryLogs, blocklists,
 } from "./schema";
 
 export const usersRelations = relations(users, ({ many, one }) => ({
@@ -140,4 +140,8 @@ export const downloadLogsRelations = relations(downloadLogs, ({ one }) => ({
 export const deliveryLogsRelations = relations(deliveryLogs, ({ one }) => ({
   order: one(orders, { fields: [deliveryLogs.orderId], references: [orders.id] }),
   orderItem: one(orderItems, { fields: [deliveryLogs.orderItemId], references: [orderItems.id] }),
+}));
+
+export const blocklistsRelations = relations(blocklists, ({ one }) => ({
+  creator: one(users, { fields: [blocklists.createdBy], references: [users.id] }),
 }));
