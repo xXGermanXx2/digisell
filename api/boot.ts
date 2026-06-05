@@ -30,40 +30,54 @@ app.get("/api/run-migration", async (c) => {
   try {
     const db = getDb();
     const dbName = env.databaseUrl.split("/").pop()?.split("?")[0] ?? "railway";
-    const migrations = [
-      // orders-Tabelle: fehlende Spalten
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`seller_id\` BIGINT UNSIGNED NULL`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`affiliate_id\` BIGINT UNSIGNED NULL`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`affiliate_commission\` DECIMAL(10,2) DEFAULT 0`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`ip_address\` VARCHAR(45) NULL`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`fraud_score\` INT DEFAULT 0`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`notes\` TEXT NULL`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`billing_name\` VARCHAR(255) NULL`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`billing_email\` VARCHAR(320) NULL`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`billing_address\` VARCHAR(500) NULL`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`billing_city\` VARCHAR(100) NULL`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`billing_zip\` VARCHAR(20) NULL`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`billing_country\` VARCHAR(2) NULL`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`billing_vat_id\` VARCHAR(50) NULL`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`fee\` DECIMAL(10,2) NOT NULL DEFAULT 0`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`discount\` DECIMAL(10,2) DEFAULT 0`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`stripe_session_id\` VARCHAR(255) NULL`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`paypal_order_id\` VARCHAR(255) NULL`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`paypal_capture_id\` VARCHAR(255) NULL`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`coupon_code\` VARCHAR(50) NULL`,
-      `ALTER TABLE \`orders\` ADD COLUMN IF NOT EXISTS \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`,
-      // blocklists-Tabelle erstellen
-      `CREATE TABLE IF NOT EXISTS \`blocklists\` (\`id\` SERIAL PRIMARY KEY, \`type\` ENUM('ip','email','domain') NOT NULL, \`value\` VARCHAR(255) NOT NULL, \`reason\` TEXT, \`created_by\` BIGINT UNSIGNED, \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY \`blocklist_unique\` (\`type\`, \`value\`))`,
-    ];
-    const results: string[] = [];
-    for (const migration of migrations) {
-      try {
-        await db.execute(sql.raw(migration));
-        results.push(`OK: ${migration.substring(0, 80)}`);
-      } catch (e: any) {
-        results.push(`SKIP (${e.message?.substring(0, 60)}): ${migration.substring(0, 60)}`);
-      }
+
+    // Hilfsfunktion: Spalte nur hinzufügen wenn sie noch nicht existiert (MySQL 8 kompatibel)
+    async function addColumnIfMissing(table: string, column: string, definition: string): Promise<string> {
+      const rows = await db.execute(sql.raw(
+        `SELECT COUNT(*) as cnt FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '${dbName}' AND TABLE_NAME = '${table}' AND COLUMN_NAME = '${column}'`
+      )) as any;
+      const cnt = rows[0]?.[0]?.cnt ?? rows[0]?.cnt ?? 0;
+      if (Number(cnt) > 0) return `SKIP (already exists): ${table}.${column}`;
+      await db.execute(sql.raw(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`));
+      return `OK: Added ${table}.${column}`;
     }
+
+    const results: string[] = [];
+
+    // orders-Tabelle: fehlende Spalten
+    const orderColumns: [string, string][] = [
+      ["seller_id", "BIGINT UNSIGNED NULL"],
+      ["affiliate_id", "BIGINT UNSIGNED NULL"],
+      ["affiliate_commission", "DECIMAL(10,2) DEFAULT 0"],
+      ["ip_address", "VARCHAR(45) NULL"],
+      ["fraud_score", "INT DEFAULT 0"],
+      ["notes", "TEXT NULL"],
+      ["billing_name", "VARCHAR(255) NULL"],
+      ["billing_email", "VARCHAR(320) NULL"],
+      ["billing_address", "VARCHAR(500) NULL"],
+      ["billing_city", "VARCHAR(100) NULL"],
+      ["billing_zip", "VARCHAR(20) NULL"],
+      ["billing_country", "VARCHAR(2) NULL"],
+      ["billing_vat_id", "VARCHAR(50) NULL"],
+      ["fee", "DECIMAL(10,2) NOT NULL DEFAULT 0"],
+      ["discount", "DECIMAL(10,2) DEFAULT 0"],
+      ["stripe_session_id", "VARCHAR(255) NULL"],
+      ["paypal_order_id", "VARCHAR(255) NULL"],
+      ["paypal_capture_id", "VARCHAR(255) NULL"],
+      ["coupon_code", "VARCHAR(50) NULL"],
+      ["updated_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"],
+    ];
+    for (const [col, def] of orderColumns) {
+      try { results.push(await addColumnIfMissing("orders", col, def)); }
+      catch (e: any) { results.push(`ERROR: orders.${col}: ${e.message?.substring(0, 80)}`); }
+    }
+
+    // blocklists-Tabelle erstellen
+    try {
+      await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS \`blocklists\` (\`id\` SERIAL PRIMARY KEY, \`type\` ENUM('ip','email','domain') NOT NULL, \`value\` VARCHAR(255) NOT NULL, \`reason\` TEXT, \`created_by\` BIGINT UNSIGNED, \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY \`blocklist_unique\` (\`type\`, \`value\`))`));
+      results.push("OK: blocklists table");
+    } catch (e: any) { results.push(`SKIP blocklists: ${e.message?.substring(0, 60)}`); }
+
     return c.json({ success: true, results });
   } catch (e: any) {
     return c.json({ error: e.message }, 500);
