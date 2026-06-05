@@ -234,6 +234,18 @@ export const ticketRouter = createRouter({
       return { success: true };
     }),
 
+  // ── Customer: close own ticket ─────────────────────────────────────────────────────
+  close: authedQuery
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const ticket = await db.query.tickets.findFirst({ where: eq(tickets.id, input.id) });
+      if (!ticket) throw Errors.notFound("Ticket nicht gefunden.");
+      if (ticket.customerId !== ctx.user.id && ctx.user.role !== "admin") throw Errors.forbidden("Kein Zugriff.");
+      await db.update(tickets).set({ status: "closed", updatedAt: new Date() }).where(eq(tickets.id, input.id));
+      return { success: true };
+    }),
+
   // ── Admin stats ───────────────────────────────────────────────────────────
   stats: adminQuery
     .query(async () => {

@@ -1,11 +1,11 @@
 import { z } from "zod";
 import * as bcrypt from "bcryptjs";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { createHash } from "crypto";
 import { createRouter, authedQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { users, apiKeys, orders, orderItems } from "@db/schema";
+import { users, apiKeys, orders, orderItems, loginLogs } from "@db/schema";
 import { Errors } from "@contracts/errors";
 import { sendEmail, emailVerificationTemplate } from "./lib/email";
 import { env } from "./lib/env";
@@ -173,5 +173,25 @@ export const profileRouter = createRouter({
       await db.delete(apiKeys)
         .where(and(eq(apiKeys.id, input.id), eq(apiKeys.userId, ctx.user!.id)));
       return { success: true };
+    }),
+
+  // ── Login History ──
+  loginHistory: authedQuery
+    .input(z.object({
+      page: z.number().int().min(1).default(1),
+      limit: z.number().int().min(1).max(50).default(20),
+    }).optional())
+    .query(async ({ ctx, input }) => {
+      const db = getDb();
+      const page = input?.page ?? 1;
+      const limit = input?.limit ?? 20;
+      const offset = (page - 1) * limit;
+      const items = await db.query.loginLogs.findMany({
+        where: eq(loginLogs.userId, ctx.user!.id),
+        orderBy: [desc(loginLogs.createdAt)],
+        limit,
+        offset,
+      });
+      return { items, page };
     }),
 });
