@@ -78,6 +78,12 @@ app.get("/api/run-migration", async (c) => {
       results.push("OK: blocklists table");
     } catch (e: any) { results.push(`SKIP blocklists: ${e.message?.substring(0, 60)}`); }
 
+    // banned_words-Tabelle für administrativ verwaltbare Shop-/Produkt-Sperrwörter erstellen
+    try {
+      await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS \`banned_words\` (\`id\` SERIAL PRIMARY KEY, \`word\` VARCHAR(255) NOT NULL, \`match_mode\` ENUM('exact','contains') NOT NULL DEFAULT 'contains', \`is_active\` BOOLEAN NOT NULL DEFAULT TRUE, \`reason\` TEXT, \`created_by\` BIGINT UNSIGNED, \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, UNIQUE KEY \`banned_words_word_idx\` (\`word\`), KEY \`banned_words_active_idx\` (\`is_active\`))`));
+      results.push("OK: banned_words table");
+    } catch (e: any) { results.push(`SKIP banned_words: ${e.message?.substring(0, 60)}`); }
+
     return c.json({ success: true, results });
   } catch (e: any) {
     return c.json({ error: e.message }, 500);

@@ -787,3 +787,19 @@ export const blocklists = mysqlTable("blocklists", {
   valueIdx: index("value_idx").on(t.value),
 }));
 export type Blocklist = typeof blocklists.$inferSelect;
+
+// ===================== BANNED WORDS =====================
+export const bannedWords = mysqlTable("banned_words", {
+  id: serial("id").primaryKey(),
+  word: varchar("word", { length: 255 }).notNull(),
+  matchMode: mysqlEnum("match_mode", ["exact", "contains"]).notNull().default("contains"),
+  isActive: boolean("is_active").notNull().default(true),
+  reason: text("reason"),
+  createdBy: bigint("created_by", { mode: "number", unsigned: true }).references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+}, (t) => ({
+  wordIdx: uniqueIndex("banned_words_word_idx").on(t.word),
+  activeIdx: index("banned_words_active_idx").on(t.isActive),
+}));
+export type BannedWord = typeof bannedWords.$inferSelect;

@@ -13,6 +13,7 @@ import {
   productFiles,
   orderItems,
 } from "@db/schema";
+import { assertNoBlockedContent } from "./lib/banned-words";
 
 // ===================== SELLER ROUTER =====================
 // Alle angemeldeten Nutzer können ihren eigenen Shop verwalten
@@ -95,6 +96,13 @@ export const sellerRouter = createRouter({
         throw new Error("Diese Shop-URL ist bereits vergeben. Bitte wähle eine andere.");
       }
 
+      await assertNoBlockedContent(db, [
+        { field: "name", label: "Shop-Name", value: input.name },
+        { field: "slug", label: "Shop-URL", value: input.slug },
+        { field: "description", label: "Shop-Beschreibung", value: input.description },
+        { field: "category", label: "Shop-Kategorie", value: input.category },
+      ]);
+
       const [newShop] = await db
         .insert(shops)
         .values({
@@ -157,6 +165,12 @@ export const sellerRouter = createRouter({
         .limit(1);
 
       if (!shop) throw new Error("Kein Shop gefunden.");
+
+      await assertNoBlockedContent(db, [
+        { field: "name", label: "Shop-Name", value: input.name },
+        { field: "description", label: "Shop-Beschreibung", value: input.description },
+        { field: "category", label: "Shop-Kategorie", value: input.category },
+      ]);
 
       await db
         .update(shops)
@@ -318,6 +332,13 @@ export const sellerRouter = createRouter({
         .limit(1);
       if (!shop) throw new Error("Erstelle zuerst einen Shop.");
 
+      await assertNoBlockedContent(db, [
+        { field: "name", label: "Produktname", value: input.name },
+        { field: "description", label: "Produktbeschreibung", value: input.description },
+        { field: "shortDescription", label: "Produkt-Kurzbeschreibung", value: input.shortDescription },
+        { field: "tags", label: "Produkt-Tags", value: input.tags },
+      ]);
+
       const slug = input.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
@@ -371,6 +392,13 @@ export const sellerRouter = createRouter({
         .limit(1);
 
       if (!product) throw new Error("Produkt nicht gefunden oder kein Zugriff.");
+
+      await assertNoBlockedContent(db, [
+        { field: "name", label: "Produktname", value: input.name },
+        { field: "description", label: "Produktbeschreibung", value: input.description },
+        { field: "shortDescription", label: "Produkt-Kurzbeschreibung", value: input.shortDescription },
+        { field: "tags", label: "Produkt-Tags", value: input.tags },
+      ]);
 
       const { id, ...updateData } = input;
       await db

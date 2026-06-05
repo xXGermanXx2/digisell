@@ -4,6 +4,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -11,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import {
   Shield, Plus, Trash2, CheckCircle, XCircle, Globe,
-  Mail, Monitor, AlertTriangle, Loader2, RefreshCw,
+  Mail, Monitor, AlertTriangle, Loader2, RefreshCw, Ban,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,12 +25,19 @@ export default function AdminSecurity() {
   const [newReason, setNewReason] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
 
+  // Wörter-Sperrliste state
+  const [newBannedWord, setNewBannedWord] = useState("");
+  const [newBannedReason, setNewBannedReason] = useState("");
+  const [newBannedMatchMode, setNewBannedMatchMode] = useState<"exact" | "contains">("contains");
+  const [isAddWordOpen, setIsAddWordOpen] = useState(false);
+
   // Login-Logs state
   const [loginSuccess, setLoginSuccess] = useState<boolean | undefined>(undefined);
   const [loginPage, setLoginPage] = useState(1);
 
   // Queries
   const { data: blocklists, isLoading: blocklistsLoading } = trpc.admin.listBlocklists.useQuery({});
+  const { data: bannedWords, isLoading: bannedWordsLoading } = trpc.admin.listBannedWords.useQuery({});
   const { data: loginLogs, isLoading: loginLogsLoading } = trpc.admin.getLoginLogs.useQuery({
     success: loginSuccess,
     page: loginPage,
@@ -56,6 +64,36 @@ export default function AdminSecurity() {
     onError: (err) => toast.error(err.message),
   });
 
+  const addBannedWord = trpc.admin.addBannedWord.useMutation({
+    onSuccess: () => {
+      utils.admin.listBannedWords.invalidate();
+      setNewBannedWord("");
+      setNewBannedReason("");
+      setNewBannedMatchMode("contains");
+      setIsAddWordOpen(false);
+      toast.success("Sperrwort hinzugefügt");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const updateBannedWord = trpc.admin.updateBannedWord.useMutation({
+    onSuccess: () => {
+      utils.admin.listBannedWords.invalidate();
+      toast.success("Sperrwort aktualisiert");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const deleteBannedWord = trpc.admin.deleteBannedWord.useMutation({
+    onSuccess: () => {
+      utils.admin.listBannedWords.invalidate();
+      toast.success("Sperrwort entfernt");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const activeBannedWords = bannedWords?.filter((word) => word.isActive) ?? [];
+  const inactiveBannedWords = bannedWords?.filter((word) => !word.isActive) ?? [];
   const ipList = blocklists?.filter((b) => b.type === "ip") ?? [];
   const emailList = blocklists?.filter((b) => b.type === "email") ?? [];
   const domainList = blocklists?.filter((b) => b.type === "domain") ?? [];
@@ -83,6 +121,9 @@ export default function AdminSecurity() {
           <TabsList className="bg-[#111827] border border-[#1E293B]">
             <TabsTrigger value="blocklists" className="data-[state=active]:bg-[#6366F1] data-[state=active]:text-white text-[#94A3B8]">
               Sperrlisten
+            </TabsTrigger>
+            <TabsTrigger value="banned-words" className="data-[state=active]:bg-[#6366F1] data-[state=active]:text-white text-[#94A3B8]">
+              Wörter-Sperrliste
             </TabsTrigger>
             <TabsTrigger value="login-logs" className="data-[state=active]:bg-[#6366F1] data-[state=active]:text-white text-[#94A3B8]">
               Login-Protokolle
@@ -246,6 +287,160 @@ export default function AdminSecurity() {
                 );
               })}
             </Tabs>
+          </TabsContent>
+
+          {/* ── Wörter-Sperrliste ── */}
+          <TabsContent value="banned-words" className="space-y-4 mt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex gap-3">
+                <div className="bg-[#111827] rounded-lg border border-[#1E293B] px-4 py-2 flex items-center gap-2">
+                  <Ban className="w-4 h-4 text-red-400" />
+                  <span className="text-sm text-[#F1F5F9] font-semibold">{activeBannedWords.length}</span>
+                  <span className="text-xs text-[#64748B]">aktive Wörter</span>
+                </div>
+                <div className="bg-[#111827] rounded-lg border border-[#1E293B] px-4 py-2 flex items-center gap-2">
+                  <XCircle className="w-4 h-4 text-[#64748B]" />
+                  <span className="text-sm text-[#F1F5F9] font-semibold">{inactiveBannedWords.length}</span>
+                  <span className="text-xs text-[#64748B]">deaktiviert</span>
+                </div>
+              </div>
+
+              <Dialog open={isAddWordOpen} onOpenChange={setIsAddWordOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-[#6366F1] hover:bg-[#5558E3] text-white">
+                    <Plus className="w-4 h-4 mr-2" /> Sperrwort hinzufügen
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-[#111827] border-[#1E293B] text-[#F1F5F9]">
+                  <DialogHeader>
+                    <DialogTitle>Neues Sperrwort hinzufügen</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-2">
+                    <div>
+                      <Label className="text-[#94A3B8] text-sm">Wort oder Begriff</Label>
+                      <Input
+                        value={newBannedWord}
+                        onChange={(e) => setNewBannedWord(e.target.value)}
+                        placeholder="z.B. verbotener Begriff"
+                        className="mt-1 bg-[#0F172A] border-[#1E293B] text-[#F1F5F9]"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[#94A3B8] text-sm">Trefferart</Label>
+                      <Select value={newBannedMatchMode} onValueChange={(value) => setNewBannedMatchMode(value as "exact" | "contains")}>
+                        <SelectTrigger className="mt-1 bg-[#0F172A] border-[#1E293B] text-[#F1F5F9]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#111827] border-[#1E293B]">
+                          <SelectItem value="contains">Enthält Begriff</SelectItem>
+                          <SelectItem value="exact">Ganzes Wort</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-[#64748B] mt-1">
+                        „Enthält Begriff“ sperrt auch zusammengesetzte Treffer. „Ganzes Wort“ sperrt nur eigenständige Wörter.
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-[#94A3B8] text-sm">Grund / interne Notiz (optional)</Label>
+                      <Textarea
+                        value={newBannedReason}
+                        onChange={(e) => setNewBannedReason(e.target.value)}
+                        placeholder="z.B. Richtlinienverstoß, Markenmissbrauch, Betrug..."
+                        className="mt-1 bg-[#0F172A] border-[#1E293B] text-[#F1F5F9]"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setIsAddWordOpen(false)} className="border-[#1E293B] text-[#94A3B8]">
+                        Abbrechen
+                      </Button>
+                      <Button
+                        onClick={() => addBannedWord.mutate({
+                          word: newBannedWord,
+                          matchMode: newBannedMatchMode,
+                          reason: newBannedReason || undefined,
+                          isActive: true,
+                        })}
+                        disabled={!newBannedWord.trim() || addBannedWord.isPending}
+                        className="bg-[#6366F1] hover:bg-[#5558E3] text-white"
+                      >
+                        {addBannedWord.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Hinzufügen"}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
+              {bannedWordsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 text-[#6366F1] animate-spin" />
+                </div>
+              ) : !bannedWords || bannedWords.length === 0 ? (
+                <div className="text-center py-12">
+                  <Ban className="w-8 h-8 text-[#64748B] mx-auto mb-2" />
+                  <p className="text-sm text-[#64748B]">Noch keine Sperrwörter hinterlegt.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-[#1E293B] hover:bg-transparent">
+                      <TableHead className="text-[#64748B]">Wort</TableHead>
+                      <TableHead className="text-[#64748B]">Trefferart</TableHead>
+                      <TableHead className="text-[#64748B]">Status</TableHead>
+                      <TableHead className="text-[#64748B]">Grund</TableHead>
+                      <TableHead className="text-[#64748B]">Hinzugefügt am</TableHead>
+                      <TableHead className="text-[#64748B] text-right">Aktionen</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bannedWords.map((entry) => (
+                      <TableRow key={entry.id} className="border-[#1E293B] hover:bg-[#1A2235]/30">
+                        <TableCell className="text-[#F1F5F9] font-mono text-sm">{entry.word}</TableCell>
+                        <TableCell>
+                          <Badge className="bg-[#1E293B] text-[#94A3B8] hover:bg-[#1E293B]">
+                            {entry.matchMode === "exact" ? "Ganzes Wort" : "Enthält"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={entry.isActive ? "bg-green-500/20 text-green-400 hover:bg-green-500/20" : "bg-[#1E293B] text-[#64748B] hover:bg-[#1E293B]"}>
+                            {entry.isActive ? "Aktiv" : "Inaktiv"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-[#94A3B8] text-sm max-w-xs truncate">{entry.reason ?? "—"}</TableCell>
+                        <TableCell className="text-[#64748B] text-sm">
+                          {entry.createdAt ? new Date(entry.createdAt).toLocaleDateString("de-DE") : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => updateBannedWord.mutate({ id: entry.id, isActive: !entry.isActive })}
+                              className="text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#1E293B]"
+                            >
+                              {entry.isActive ? "Deaktivieren" : "Aktivieren"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm(`Sperrwort "${entry.word}" wirklich entfernen?`)) {
+                                  deleteBannedWord.mutate({ id: entry.id });
+                                }
+                              }}
+                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
           </TabsContent>
 
           {/* ── Login-Protokolle ── */}

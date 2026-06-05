@@ -8,7 +8,7 @@ import {
   products, categories, reviews, tickets, ticketMessages,
   subscriptions, coupons, fraudRules, shopSettings,
   deliveryLogs, licenseKeys, webhooks,
-  shops, reports, loginLogs, adminRoles, moderationLogs, blocklists,
+  shops, reports, loginLogs, adminRoles, moderationLogs, blocklists, bannedWords,
 } from "@db/schema";
 import { Errors } from "@contracts/errors";
 import { sendEmail } from "./lib/email";
@@ -1623,6 +1623,91 @@ export const adminRouter = createRouter({
         level: "info", category: "admin",
         message: `Admin ${ctx.user.id} removed blocklist entry ${input.id}`,
         metadata: { adminId: ctx.user.id, blocklistId: input.id },
+      });
+      return { success: true };
+    }),
+
+  // ═══════════════════════════════════════════════════════════
+  // BANNED WORDS — Wörter-Sperrliste für Shops und Produkte
+  // ═══════════════════════════════════════════════════════════
+
+  listBannedWords: adminQuery
+    .input(z.object({ isActive: z.boolean().optional(), search: z.string().optional() }).optional())
+    .query(async ({ input }) => {
+      const db = getDb();
+      const conditions: any[] = [];
+      if (input?.isActive !== undefined) conditions.push(eq(bannedWords.isActive, input.isActive));
+      if (input?.search) conditions.push(like(bannedWords.word, `%${input.search}%`));
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+      return db.query.bannedWords.findMany({
+        where,
+        orderBy: [desc(bannedWords.createdAt)],
+      });
+    }),
+
+  addBannedWord: adminQuery
+    .input(z.object({
+      word: z.string().min(1).max(255),
+      matchMode: z.enum(["exact", "contains"]).default("contains"),
+      reason: z.string().optional(),
+      isActive: z.boolean().default(true),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const normalizedWord = input.word.trim().toLocaleLowerCase("de-DE");
+      if (!normalizedWord) throw new Error("Bitte gib ein gültiges Sperrwort ein.");
+
+      await db.insert(bannedWords).values({
+        word: normalizedWord,
+        matchMode: input.matchMode,
+        reason: input.reason,
+        isActive: input.isActive,
+        createdBy: ctx.user.id,
+      });
+
+      await db.insert(systemLogs).values({
+        level: "warn", category: "admin",
+        message: `Admin ${ctx.user.id} added banned word: ${normalizedWord}`,
+        metadata: { adminId: ctx.user.id, word: normalizedWord, matchMode: input.matchMode },
+      });
+
+      return { success: true };
+    }),
+
+  updateBannedWord: adminQuery
+    .input(z.object({
+      id: z.number().int().positive(),
+      word: z.string().min(1).max(255).optional(),
+      matchMode: z.enum(["exact", "contains"]).optional(),
+      reason: z.string().optional(),
+      isActive: z.boolean().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const { id, word, ...rest } = input;
+      const data: any = { ...rest };
+      if (word !== undefined) data.word = word.trim().toLocaleLowerCase("de-DE");
+
+      await db.update(bannedWords).set(data).where(eq(bannedWords.id, id));
+      await db.insert(systemLogs).values({
+        level: "info", category: "admin",
+        message: `Admin ${ctx.user.id} updated banned word ${id}`,
+        metadata: { adminId: ctx.user.id, bannedWordId: id },
+      });
+
+      return { success: true };
+    }),
+
+  deleteBannedWord: adminQuery
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      await db.delete(bannedWords).where(eq(bannedWords.id, input.id));
+      await db.insert(systemLogs).values({
+        level: "info", category: "admin",
+        message: `Admin ${ctx.user.id} removed banned word ${input.id}`,
+        metadata: { adminId: ctx.user.id, bannedWordId: input.id },
       });
       return { success: true };
     }),
