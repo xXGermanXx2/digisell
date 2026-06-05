@@ -1,4 +1,7 @@
 import { env } from "./env";
+import { getDb } from "../queries/connection";
+import { shopSettings } from "@db/schema";
+import { desc } from "drizzle-orm";
 
 interface EmailOptions {
   to: string;
@@ -10,23 +13,47 @@ interface EmailOptions {
 interface SMTPConfig {
   host: string;
   port: number;
-  user: string;
-  pass: string;
+  user?: string;
+  pass?: string;
   from: string;
 }
 
-async function getSMTPConfig(): Promise<SMTPConfig | null> {
-  // Try env vars first, then DB settings
-  if (env.smtpHost && env.smtpUser) {
+function envSMTPConfig(): SMTPConfig | null {
+  if (!env.smtpHost) return null;
+  return {
+    host: env.smtpHost,
+    port: env.smtpPort || 587,
+    user: env.smtpUser || undefined,
+    pass: env.smtpPass || undefined,
+    from: env.smtpFrom || `DigiSell <noreply@digisell.app>`,
+  };
+}
+
+async function dbSMTPConfig(): Promise<SMTPConfig | null> {
+  try {
+    const db = getDb();
+    const settings = await db.query.shopSettings.findFirst({
+      orderBy: [desc(shopSettings.id)],
+    });
+
+    if (!settings?.smtpHost) return null;
     return {
-      host: env.smtpHost,
-      port: env.smtpPort,
-      user: env.smtpUser,
-      pass: env.smtpPass,
-      from: env.smtpFrom || `DigiSell <noreply@digisell.app>`,
+      host: settings.smtpHost,
+      port: settings.smtpPort || 587,
+      user: settings.smtpUser || undefined,
+      pass: settings.smtpPass || undefined,
+      from: settings.smtpFrom || env.smtpFrom || `DigiSell <noreply@digisell.app>`,
     };
+  } catch (err) {
+    console.warn("[Email] Could not load SMTP settings from database, falling back to environment:", err);
+    return null;
   }
-  return null;
+}
+
+async function getSMTPConfig(): Promise<SMTPConfig | null> {
+  // Admin-configured SMTP settings are the source of truth. Environment
+  // variables remain a safe fallback for deployments without DB settings.
+  return (await dbSMTPConfig()) ?? envSMTPConfig();
 }
 
 export async function sendEmail(opts: EmailOptions): Promise<boolean> {
@@ -37,7 +64,7 @@ export async function sendEmail(opts: EmailOptions): Promise<boolean> {
   }
 
   try {
-    // Dynamic import to avoid issues when nodemailer not installed
+    // Dynamic import to avoid issues when nodemailer is not installed
     const nodemailer = await import("nodemailer").catch(() => null);
     if (!nodemailer) {
       console.warn("[Email] nodemailer not installed");
@@ -48,7 +75,10 @@ export async function sendEmail(opts: EmailOptions): Promise<boolean> {
       host: config.host,
       port: config.port,
       secure: config.port === 465,
-      auth: { user: config.user, pass: config.pass },
+      auth: config.user ? { user: config.user, pass: config.pass ?? "" } : undefined,
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 15_000,
     });
 
     await transporter.sendMail({

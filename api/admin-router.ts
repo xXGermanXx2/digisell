@@ -298,8 +298,9 @@ export const adminRouter = createRouter({
         message: input.message,
         reason: input.reason,
       });
+      let emailSent = false;
       if (user.email) {
-        await sendEmail({
+        emailSent = await sendEmail({
           to: user.email,
           subject: `[DigiSell] Warnung: ${input.subject}`,
           html: `<p><strong>${input.subject}</strong></p><p>${input.message}</p><p><strong>Begründung:</strong> ${input.reason}</p>`,
@@ -308,9 +309,9 @@ export const adminRouter = createRouter({
       await db.insert(systemLogs).values({
         level: "warn", category: "admin",
         message: `Admin ${ctx.user.id} sent warning to user ${input.userId}: ${input.subject}`,
-        metadata: { adminId: ctx.user.id, userId: input.userId, subject: input.subject },
+        metadata: { adminId: ctx.user.id, userId: input.userId, subject: input.subject, emailSent },
       });
-      return { success: true };
+      return { success: true, emailSent };
     }),
   listWarnings: adminQuery
     .input(z.object({

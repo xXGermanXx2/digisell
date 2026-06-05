@@ -87,8 +87,8 @@ export default function AdminUsers() {
     onSuccess: () => { toast.success("E-Mail verifiziert"); utils.admin.listUsers.invalidate(); },
   });
   const sendWarning = trpc.admin.sendWarning.useMutation({
-    onSuccess: () => {
-      toast.success("Warnung gesendet");
+    onSuccess: (result) => {
+      toast.success(result.emailSent ? "Warnung gespeichert und per E-Mail gesendet" : "Warnung gespeichert; E-Mail-Versand nicht konfiguriert oder fehlgeschlagen");
       setWarningForm({ subject: "Verwarnung", message: "", reason: "" });
       utils.admin.listWarnings.invalidate();
     },
