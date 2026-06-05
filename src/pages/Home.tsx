@@ -5,10 +5,10 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
-import planFreeImg from "@/assets/plans/plan-free.png";
-import planPremiumImg from "@/assets/plans/plan-premium.png";
-import planBusinessImg from "@/assets/plans/plan-business.png";
-import planEnterpriseImg from "@/assets/plans/plan-enterprise.png";
+import planFreeImg from "@/assets/plans/plan-free.jpg";
+import planPremiumImg from "@/assets/plans/plan-premium.jpg";
+import planBusinessImg from "@/assets/plans/plan-business.jpg";
+import planEnterpriseImg from "@/assets/plans/plan-enterprise.jpg";
 import {
   ArrowRight,
   Upload,
