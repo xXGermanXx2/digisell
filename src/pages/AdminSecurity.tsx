@@ -106,19 +106,19 @@ export default function AdminSecurity() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-start gap-3">
             <Shield className="w-6 h-6 text-indigo-400" />
-            <div>
+            <div className="min-w-0">
               <h1 className="text-xl font-bold text-[#F1F5F9]">Sicherheit</h1>
-              <p className="text-sm text-[#64748B]">Sperrlisten, Login-Protokolle & Sicherheitsüberwachung</p>
+              <p className="break-words text-sm text-[#64748B]">Sperrlisten, Login-Protokolle & Sicherheitsüberwachung</p>
             </div>
           </div>
         </div>
 
-        <Tabs defaultValue="blocklists">
-          <TabsList className="bg-[#111827] border border-[#1E293B] flex-wrap h-auto gap-1 p-1">
+        <Tabs defaultValue="blocklists" className="min-w-0 max-w-full">
+          <TabsList className="w-full justify-start bg-[#111827] border border-[#1E293B] flex-wrap h-auto gap-1 p-1">
             <TabsTrigger value="blocklists" className="data-[state=active]:bg-[#6366F1] data-[state=active]:text-white text-[#94A3B8]">
               Sperrlisten
             </TabsTrigger>
@@ -131,20 +131,20 @@ export default function AdminSecurity() {
           </TabsList>
 
           {/* ── Sperrlisten ── */}
-          <TabsContent value="blocklists" className="space-y-4 mt-4">
+          <TabsContent value="blocklists" className="min-w-0 space-y-4 mt-4">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-              <div className="flex gap-3">
-                <div className="bg-[#111827] rounded-lg border border-[#1E293B] px-4 py-2 flex items-center gap-2">
+              <div className="flex flex-wrap gap-3">
+                <div className="bg-[#111827] rounded-lg border border-[#1E293B] px-4 py-2 flex min-w-0 items-center gap-2">
                   <Monitor className="w-4 h-4 text-red-400" />
                   <span className="text-sm text-[#F1F5F9] font-semibold">{ipList.length}</span>
                   <span className="text-xs text-[#64748B]">IPs gesperrt</span>
                 </div>
-                <div className="bg-[#111827] rounded-lg border border-[#1E293B] px-4 py-2 flex items-center gap-2">
+                <div className="bg-[#111827] rounded-lg border border-[#1E293B] px-4 py-2 flex min-w-0 items-center gap-2">
                   <Mail className="w-4 h-4 text-yellow-400" />
                   <span className="text-sm text-[#F1F5F9] font-semibold">{emailList.length}</span>
                   <span className="text-xs text-[#64748B]">E-Mails gesperrt</span>
                 </div>
-                <div className="bg-[#111827] rounded-lg border border-[#1E293B] px-4 py-2 flex items-center gap-2">
+                <div className="bg-[#111827] rounded-lg border border-[#1E293B] px-4 py-2 flex min-w-0 items-center gap-2">
                   <Globe className="w-4 h-4 text-orange-400" />
                   <span className="text-sm text-[#F1F5F9] font-semibold">{domainList.length}</span>
                   <span className="text-xs text-[#64748B]">Domains gesperrt</span>
@@ -153,11 +153,11 @@ export default function AdminSecurity() {
 
               <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-[#6366F1] hover:bg-[#5558E3] text-white">
+                  <Button className="w-full sm:w-auto bg-[#6366F1] hover:bg-[#5558E3] text-white">
                     <Plus className="w-4 h-4 mr-2" /> Eintrag hinzufügen
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="w-[calc(100vw-1rem)] sm:w-full bg-[#111827] border-[#1E293B] text-[#F1F5F9]">
+                <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-h-[calc(100dvh-2rem)] overflow-y-auto bg-[#111827] border-[#1E293B] text-[#F1F5F9] p-4 sm:p-6">
                   <DialogHeader>
                     <DialogTitle>Zur Sperrliste hinzufügen</DialogTitle>
                   </DialogHeader>
@@ -165,7 +165,7 @@ export default function AdminSecurity() {
                     <div>
                       <Label className="text-[#94A3B8] text-sm">Typ</Label>
                       <Select value={blocklistType} onValueChange={(v) => setBlocklistType(v as any)}>
-                        <SelectTrigger className="mt-1 bg-[#0F172A] border-[#1E293B] text-[#F1F5F9]">
+                        <SelectTrigger className="mt-1 w-full bg-[#0F172A] border-[#1E293B] text-[#F1F5F9]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-[#111827] border-[#1E293B]">
@@ -195,14 +195,14 @@ export default function AdminSecurity() {
                         className="mt-1 bg-[#0F172A] border-[#1E293B] text-[#F1F5F9]"
                       />
                     </div>
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setIsAddOpen(false)} className="border-[#1E293B] text-[#94A3B8]">
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
+                      <Button variant="outline" onClick={() => setIsAddOpen(false)} className="w-full sm:w-auto border-[#1E293B] text-[#94A3B8]">
                         Abbrechen
                       </Button>
                       <Button
                         onClick={() => addBlocklist.mutate({ type: blocklistType, value: newValue, reason: newReason || undefined })}
                         disabled={!newValue.trim() || addBlocklist.isPending}
-                        className="bg-[#6366F1] hover:bg-[#5558E3] text-white"
+                        className="w-full sm:w-auto bg-[#6366F1] hover:bg-[#5558E3] text-white"
                       >
                         {addBlocklist.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Hinzufügen"}
                       </Button>
@@ -230,7 +230,7 @@ export default function AdminSecurity() {
                 const list = type === "ip" ? ipList : type === "email" ? emailList : domainList;
                 return (
                   <TabsContent key={type} value={type} className="mt-3">
-                    <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
+                    <div className="max-w-full overflow-hidden rounded-xl border border-[#1E293B] bg-[#111827]">
                       {blocklistsLoading ? (
                         <div className="flex items-center justify-center py-12">
                           <Loader2 className="w-6 h-6 text-[#6366F1] animate-spin" />
@@ -254,9 +254,9 @@ export default function AdminSecurity() {
                             {list.map((entry) => (
                               <TableRow key={entry.id} className="border-[#1E293B] hover:bg-[#1A2235]/30">
                                 <TableCell>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex flex-wrap items-center gap-2">
                                     {typeIcon(entry.type)}
-                                    <span className="text-[#F1F5F9] font-mono text-sm">{entry.value}</span>
+                                    <span className="text-[#F1F5F9] font-mono text-sm break-all">{entry.value}</span>
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-[#94A3B8] text-sm">{entry.reason ?? "—"}</TableCell>
@@ -290,15 +290,15 @@ export default function AdminSecurity() {
           </TabsContent>
 
           {/* ── Wörter-Sperrliste ── */}
-          <TabsContent value="banned-words" className="space-y-4 mt-4">
+          <TabsContent value="banned-words" className="min-w-0 space-y-4 mt-4">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-              <div className="flex gap-3">
-                <div className="bg-[#111827] rounded-lg border border-[#1E293B] px-4 py-2 flex items-center gap-2">
+              <div className="flex flex-wrap gap-3">
+                <div className="bg-[#111827] rounded-lg border border-[#1E293B] px-4 py-2 flex min-w-0 items-center gap-2">
                   <Ban className="w-4 h-4 text-red-400" />
                   <span className="text-sm text-[#F1F5F9] font-semibold">{activeBannedWords.length}</span>
                   <span className="text-xs text-[#64748B]">aktive Wörter</span>
                 </div>
-                <div className="bg-[#111827] rounded-lg border border-[#1E293B] px-4 py-2 flex items-center gap-2">
+                <div className="bg-[#111827] rounded-lg border border-[#1E293B] px-4 py-2 flex min-w-0 items-center gap-2">
                   <XCircle className="w-4 h-4 text-[#64748B]" />
                   <span className="text-sm text-[#F1F5F9] font-semibold">{inactiveBannedWords.length}</span>
                   <span className="text-xs text-[#64748B]">deaktiviert</span>
@@ -307,11 +307,11 @@ export default function AdminSecurity() {
 
               <Dialog open={isAddWordOpen} onOpenChange={setIsAddWordOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-[#6366F1] hover:bg-[#5558E3] text-white">
+                  <Button className="w-full sm:w-auto bg-[#6366F1] hover:bg-[#5558E3] text-white">
                     <Plus className="w-4 h-4 mr-2" /> Sperrwort hinzufügen
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="w-[calc(100vw-1rem)] sm:w-full bg-[#111827] border-[#1E293B] text-[#F1F5F9]">
+                <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-h-[calc(100dvh-2rem)] overflow-y-auto bg-[#111827] border-[#1E293B] text-[#F1F5F9] p-4 sm:p-6">
                   <DialogHeader>
                     <DialogTitle>Neues Sperrwort hinzufügen</DialogTitle>
                   </DialogHeader>
@@ -328,7 +328,7 @@ export default function AdminSecurity() {
                     <div>
                       <Label className="text-[#94A3B8] text-sm">Trefferart</Label>
                       <Select value={newBannedMatchMode} onValueChange={(value) => setNewBannedMatchMode(value as "exact" | "contains")}>
-                        <SelectTrigger className="mt-1 bg-[#0F172A] border-[#1E293B] text-[#F1F5F9]">
+                        <SelectTrigger className="mt-1 w-full bg-[#0F172A] border-[#1E293B] text-[#F1F5F9]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-[#111827] border-[#1E293B]">
@@ -349,8 +349,8 @@ export default function AdminSecurity() {
                         className="mt-1 bg-[#0F172A] border-[#1E293B] text-[#F1F5F9]"
                       />
                     </div>
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setIsAddWordOpen(false)} className="border-[#1E293B] text-[#94A3B8]">
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
+                      <Button variant="outline" onClick={() => setIsAddWordOpen(false)} className="w-full sm:w-auto border-[#1E293B] text-[#94A3B8]">
                         Abbrechen
                       </Button>
                       <Button
@@ -361,7 +361,7 @@ export default function AdminSecurity() {
                           isActive: true,
                         })}
                         disabled={!newBannedWord.trim() || addBannedWord.isPending}
-                        className="bg-[#6366F1] hover:bg-[#5558E3] text-white"
+                        className="w-full sm:w-auto bg-[#6366F1] hover:bg-[#5558E3] text-white"
                       >
                         {addBannedWord.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Hinzufügen"}
                       </Button>
@@ -371,7 +371,7 @@ export default function AdminSecurity() {
               </Dialog>
             </div>
 
-            <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
+            <div className="max-w-full overflow-hidden rounded-xl border border-[#1E293B] bg-[#111827]">
               {bannedWordsLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-6 h-6 text-[#6366F1] animate-spin" />
@@ -396,7 +396,7 @@ export default function AdminSecurity() {
                   <TableBody>
                     {bannedWords.map((entry) => (
                       <TableRow key={entry.id} className="border-[#1E293B] hover:bg-[#1A2235]/30">
-                        <TableCell className="text-[#F1F5F9] font-mono text-sm">{entry.word}</TableCell>
+                        <TableCell className="text-[#F1F5F9] font-mono text-sm break-all">{entry.word}</TableCell>
                         <TableCell>
                           <Badge className="bg-[#1E293B] text-[#94A3B8] hover:bg-[#1E293B]">
                             {entry.matchMode === "exact" ? "Ganzes Wort" : "Enthält"}
@@ -407,7 +407,7 @@ export default function AdminSecurity() {
                             {entry.isActive ? "Aktiv" : "Inaktiv"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-[#94A3B8] text-sm max-w-xs truncate">{entry.reason ?? "—"}</TableCell>
+                        <TableCell className="text-[#94A3B8] text-sm max-w-[16rem] truncate">{entry.reason ?? "—"}</TableCell>
                         <TableCell className="text-[#64748B] text-sm">
                           {entry.createdAt ? new Date(entry.createdAt).toLocaleDateString("de-DE") : "—"}
                         </TableCell>
@@ -444,8 +444,8 @@ export default function AdminSecurity() {
           </TabsContent>
 
           {/* ── Login-Protokolle ── */}
-          <TabsContent value="login-logs" className="space-y-4 mt-4">
-            <div className="flex items-center gap-2">
+          <TabsContent value="login-logs" className="min-w-0 space-y-4 mt-4">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 size="sm"
                 variant={loginSuccess === undefined ? "default" : "outline"}
@@ -474,13 +474,13 @@ export default function AdminSecurity() {
                 size="sm"
                 variant="outline"
                 onClick={() => utils.admin.getLoginLogs.invalidate()}
-                className="border-[#1E293B] text-[#94A3B8] ml-auto"
+                className="border-[#1E293B] text-[#94A3B8] sm:ml-auto"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
               </Button>
             </div>
 
-            <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
+            <div className="max-w-full overflow-hidden rounded-xl border border-[#1E293B] bg-[#111827]">
               {loginLogsLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-6 h-6 text-[#6366F1] animate-spin" />
@@ -538,7 +538,7 @@ export default function AdminSecurity() {
             {loginLogs && loginLogs.total > 50 && (
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <p className="text-[#64748B] text-sm">{loginLogs.total} Einträge · Seite {loginPage} von {Math.ceil(loginLogs.total / 50)}</p>
-                <div className="flex gap-2">
+                <div className="flex w-full sm:w-auto gap-2">
                   <Button size="sm" variant="outline" onClick={() => setLoginPage((p) => Math.max(1, p - 1))} disabled={loginPage === 1}
                     className="border-[#1E293B] text-[#94A3B8]">Zurück</Button>
                   <Button size="sm" variant="outline" onClick={() => setLoginPage((p) => p + 1)} disabled={loginPage >= Math.ceil(loginLogs.total / 50)}
