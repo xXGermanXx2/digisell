@@ -1429,4 +1429,150 @@ export const adminRouter = createRouter({
         .groupBy(sql`DATE(created_at)`)
         .orderBy(sql`DATE(created_at)`);
     }),
+
+  // ═══════════════════════════════════════════════════════════
+  // AFFILIATE — Genehmigen / Ablehnen / Auszahlen
+  // ═══════════════════════════════════════════════════════════
+
+  approveAffiliate: adminQuery
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      await db.update(affiliates).set({ status: "active" }).where(eq(affiliates.id, input.id));
+      await db.insert(systemLogs).values({
+        level: "info", category: "admin",
+        message: `Admin ${ctx.user.id} approved affiliate ${input.id}`,
+        metadata: { adminId: ctx.user.id, affiliateId: input.id },
+      });
+      return { success: true };
+    }),
+
+  rejectAffiliate: adminQuery
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      await db.update(affiliates).set({ status: "inactive" }).where(eq(affiliates.id, input.id));
+      await db.insert(systemLogs).values({
+        level: "warn", category: "admin",
+        message: `Admin ${ctx.user.id} rejected affiliate ${input.id}`,
+        metadata: { adminId: ctx.user.id, affiliateId: input.id },
+      });
+      return { success: true };
+    }),
+
+  processAffiliatePayout: adminQuery
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const aff = await db.query.affiliates.findFirst({ where: eq(affiliates.id, input.id) });
+      if (!aff) throw Errors.notFound("Affiliate nicht gefunden");
+      const pending = Number(aff.pendingAmount ?? 0);
+      await db.update(affiliates).set({
+        totalPaid: sql`total_paid + ${pending}`,
+        pendingAmount: "0",
+      }).where(eq(affiliates.id, input.id));
+      await db.insert(systemLogs).values({
+        level: "info", category: "admin",
+        message: `Admin ${ctx.user.id} processed payout of ${pending} for affiliate ${input.id}`,
+        metadata: { adminId: ctx.user.id, affiliateId: input.id, amount: pending },
+      });
+      return { success: true };
+    }),
+
+  // ═══════════════════════════════════════════════════════════
+  // LOGS — Alias-Routen für Frontend-Kompatibilität
+  // ═══════════════════════════════════════════════════════════
+
+  getLogs: adminQuery
+    .input(z.object({
+      page: z.number().int().min(1).default(1),
+      limit: z.number().int().min(1).max(200).default(50),
+      level: z.string().optional(),
+      search: z.string().optional(),
+      action: z.string().optional(),
+    }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const offset = (input.page - 1) * input.limit;
+      const conditions: any[] = [];
+      if (input.level && input.level !== "all") conditions.push(eq(systemLogs.level, input.level as any));
+      if (input.search) conditions.push(like(systemLogs.message, `%${input.search}%`));
+      if (input.action) conditions.push(like(systemLogs.category, `%${input.action}%`));
+      const where = conditions.length > 0 ? and(...conditions) : undefined;
+      const [items, countResult] = await Promise.all([
+        db.query.systemLogs.findMany({
+          where,
+          orderBy: [desc(systemLogs.createdAt)],
+          limit: input.limit,
+          offset,
+        }),
+        db.select({ count: sql<number>`count(*)` }).from(systemLogs).where(where),
+      ]);
+      return {
+        items: items.map(l => ({
+          ...l,
+          action: l.category,
+          ipAddress: (l.metadata as any)?.ip ?? null,
+          userId: (l.metadata as any)?.userId ?? null,
+        })),
+        total: Number(countResult[0]?.count ?? 0),
+        page: input.page,
+        limit: input.limit,
+      };
+    }),
+
+  getSystemLogs: adminQuery
+    .input(z.object({ limit: z.number().int().min(1).max(200).default(50) }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const items = await db.query.systemLogs.findMany({
+        orderBy: [desc(systemLogs.createdAt)],
+        limit: input.limit,
+      });
+      return { items };
+    }),
+
+  clearLogs: adminQuery
+    .mutation(async ({ ctx }) => {
+      const db = getDb();
+      await db.delete(systemLogs);
+      await db.insert(systemLogs).values({
+        level: "info", category: "admin",
+        message: `Admin ${ctx.user.id} cleared all system logs`,
+        metadata: { adminId: ctx.user.id },
+      });
+      return { success: true };
+    }),
+
+  createBackup: adminQuery
+    .mutation(async ({ ctx }) => {
+      const db = getDb();
+      const [userCount, orderCount, productCount] = await Promise.all([
+        db.select({ count: sql<number>`count(*)` }).from(users),
+        db.select({ count: sql<number>`count(*)` }).from(orders),
+        db.select({ count: sql<number>`count(*)` }).from(products),
+      ]);
+      await db.insert(systemLogs).values({
+        level: "info", category: "admin",
+        message: `Admin ${ctx.user.id} triggered a backup`,
+        metadata: {
+          adminId: ctx.user.id,
+          timestamp: new Date().toISOString(),
+          snapshot: {
+            users: Number(userCount[0]?.count ?? 0),
+            orders: Number(orderCount[0]?.count ?? 0),
+            products: Number(productCount[0]?.count ?? 0),
+          },
+        },
+      });
+      return {
+        success: true,
+        snapshot: {
+          users: Number(userCount[0]?.count ?? 0),
+          orders: Number(orderCount[0]?.count ?? 0),
+          products: Number(productCount[0]?.count ?? 0),
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }),
 });

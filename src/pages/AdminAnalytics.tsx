@@ -8,12 +8,14 @@ import { TrendingUp, Users, ShoppingBag, DollarSign, Download } from "lucide-rea
 
 export default function AdminAnalytics() {
   const [period, setPeriod] = useState("30d");
-  const { data } = trpc.analytics.overview.useQuery({ period });
-  const { data: revenue } = trpc.analytics.revenueChart.useQuery({ period });
-  const { data: visitors } = trpc.analytics.visitorStats.useQuery({ period });
+  const days = period === "7d" ? 7 : period === "30d" ? 30 : period === "90d" ? 90 : 365;
+
+  const { data } = trpc.analytics.dashboard.useQuery();
+  const { data: revenueRaw } = trpc.analytics.revenue.useQuery({ days });
+  const { data: visitorsRaw } = trpc.analytics.visitors.useQuery({ days });
 
   const handleExport = () => {
-    const csvData = (revenue?.data ?? []).map((d: any) => `${d.date},${d.revenue}`).join("\n");
+    const csvData = (revenueRaw ?? []).map((d: any) => `${d.date},${d.revenue}`).join("\n");
     const blob = new Blob([`Datum,Umsatz\n${csvData}`], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = "analytics.csv"; a.click();
@@ -50,7 +52,7 @@ export default function AdminAnalytics() {
           {[
             { label: "Gesamtumsatz", value: `${Number(data?.totalRevenue ?? 0).toFixed(2)}€`, icon: DollarSign, color: "text-green-400" },
             { label: "Bestellungen", value: data?.totalOrders ?? 0, icon: ShoppingBag, color: "text-blue-400" },
-            { label: "Neue Nutzer", value: data?.newUsers ?? 0, icon: Users, color: "text-purple-400" },
+            { label: "Neue Nutzer", value: data?.totalCustomers ?? 0, icon: Users, color: "text-purple-400" },
             { label: "Conversion", value: `${Number(data?.conversionRate ?? 0).toFixed(1)}%`, icon: TrendingUp, color: "text-yellow-400" },
           ].map(({ label, value, icon: Icon, color }) => (
             <div key={label} className="bg-[#111827] rounded-xl border border-[#1E293B] p-4">
@@ -67,7 +69,7 @@ export default function AdminAnalytics() {
         <div className="bg-[#111827] rounded-xl border border-[#1E293B] p-5">
           <h2 className="text-base font-semibold text-[#F1F5F9] mb-4">Umsatz-Verlauf</h2>
           <ResponsiveContainer width="100%" height={250}>
-            <AreaChart data={revenue?.data ?? []}>
+            <AreaChart data={revenueRaw ?? []}>
               <defs>
                 <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3} />
@@ -87,7 +89,7 @@ export default function AdminAnalytics() {
         <div className="bg-[#111827] rounded-xl border border-[#1E293B] p-5">
           <h2 className="text-base font-semibold text-[#F1F5F9] mb-4">Besucher</h2>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={visitors?.data ?? []}>
+            <BarChart data={(visitorsRaw ?? []).map((v: any) => ({ date: v.date, visitors: v.uniqueVisitors ?? 0 }))}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
               <XAxis dataKey="date" tick={{ fill: "#64748B", fontSize: 11 }} />
               <YAxis tick={{ fill: "#64748B", fontSize: 11 }} />
