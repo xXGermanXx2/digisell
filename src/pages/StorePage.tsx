@@ -40,10 +40,17 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
 
 export default function StorePage() {
   const { slug } = useParams<{ slug: string }>();
+  const { user } = useAuth({});
   const { data, isLoading, error } = trpc.seller.getPublicShop.useQuery(
     { slug: slug ?? "" },
     { enabled: !!slug }
   );
+  const shopId = data?.shop?.id;
+  const { data: shopCredits } = trpc.credits.getMyShopCredits.useQuery(
+    { shopId: shopId ?? "" },
+    { enabled: !!user && !!shopId }
+  );
+  const myShopBalance = shopCredits?.balance ?? 0;
 
   if (isLoading) {
     return (
@@ -72,14 +79,6 @@ export default function StorePage() {
   }
 
   const { shop, products } = data;
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const { user } = useAuth({});
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const { data: shopCredits } = trpc.credits.getMyShopCredits.useQuery(
-    { shopId: shop.id },
-    { enabled: !!user && !!shop.id }
-  );
-  const myShopBalance = shopCredits?.balance ?? 0;
 
   return (
     <div className="min-h-screen bg-[#0A0E1A]">
