@@ -1,11 +1,11 @@
 import { z } from "zod";
 import * as bcrypt from "bcryptjs";
-import { eq, and, gt, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { createHash } from "crypto";
 import { createRouter, authedQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { users, apiKeys, orders, orderItems, loginLogs } from "@db/schema";
+import { users, apiKeys, orders, loginLogs, userWarnings } from "@db/schema";
 import { Errors } from "@contracts/errors";
 import { sendEmail, emailVerificationTemplate } from "./lib/email";
 import { env } from "./lib/env";
@@ -85,6 +85,32 @@ export const profileRouter = createRouter({
         html: emailVerificationTemplate(ctx.user!.name ?? "", token, env.appUrl),
       });
 
+      return { success: true };
+    }),
+
+  // ── user warnings ──
+  listWarnings: authedQuery.query(async ({ ctx }) => {
+    const db = getDb();
+    return db.query.userWarnings.findMany({
+      where: eq(userWarnings.userId, ctx.user!.id),
+      orderBy: [desc(userWarnings.createdAt)],
+      limit: 100,
+    });
+  }),
+  listUndismissedWarnings: authedQuery.query(async ({ ctx }) => {
+    const db = getDb();
+    return db.query.userWarnings.findMany({
+      where: and(eq(userWarnings.userId, ctx.user!.id), eq(userWarnings.isDismissed, false)),
+      orderBy: [desc(userWarnings.createdAt)],
+      limit: 10,
+    });
+  }),
+  dismissWarning: authedQuery
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      await db.update(userWarnings).set({ isDismissed: true, dismissedAt: new Date() })
+        .where(and(eq(userWarnings.id, input.id), eq(userWarnings.userId, ctx.user!.id)));
       return { success: true };
     }),
 

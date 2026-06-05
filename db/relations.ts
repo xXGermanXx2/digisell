@@ -5,7 +5,7 @@ import {
   licenseKeys, apiKeys, refreshTokens, productVariants, productFiles,
   affiliates, affiliateClicks, affiliateCommissions, affiliatePayouts,
   subscriptions, webhooks, webhookLogs, systemLogs, paymentLogs,
-  downloadLogs, deliveryLogs, blocklists,
+  downloadLogs, deliveryLogs, blocklists, userWarnings,
 } from "./schema";
 
 export const usersRelations = relations(users, ({ many, one }) => ({
@@ -17,6 +17,8 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   affiliate: one(affiliates, { fields: [users.id], references: [affiliates.userId] }),
   subscriptions: many(subscriptions),
   webhooks: many(webhooks),
+  warnings: many(userWarnings, { relationName: "userWarnings" }),
+  issuedWarnings: many(userWarnings, { relationName: "adminWarnings" }),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
@@ -144,4 +146,9 @@ export const deliveryLogsRelations = relations(deliveryLogs, ({ one }) => ({
 
 export const blocklistsRelations = relations(blocklists, ({ one }) => ({
   creator: one(users, { fields: [blocklists.createdBy], references: [users.id] }),
+}));
+
+export const userWarningsRelations = relations(userWarnings, ({ one }) => ({
+  user: one(users, { fields: [userWarnings.userId], references: [users.id], relationName: "userWarnings" }),
+  admin: one(users, { fields: [userWarnings.adminId], references: [users.id], relationName: "adminWarnings" }),
 }));

@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import {
   Search, MoreVertical, Shield, Ban, CheckCircle, Loader2, Users,
   Trash2, Eye, AlertTriangle, X, ChevronLeft, ChevronRight,
-  Crown, Star, Zap, Infinity as InfinityIcon, Coins, Plus, Minus
+  Crown, Star, Zap, Coins, Plus, Minus
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,7 +46,7 @@ export default function AdminUsers() {
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [showWarning, setShowWarning] = useState(false);
-  const [warningMsg, setWarningMsg] = useState("");
+  const [warningForm, setWarningForm] = useState({ subject: "Verwarnung", message: "", reason: "" });
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [planForm, setPlanForm] = useState({ plan: "free", expiresAt: "", isLifetime: false, notes: "" });
   const [showLimitsModal, setShowLimitsModal] = useState(false);
@@ -66,6 +66,10 @@ export default function AdminUsers() {
     { id: selectedUser?.id },
     { enabled: !!selectedUser?.id }
   );
+  const { data: warningHistory, isLoading: warningHistoryLoading } = trpc.admin.listWarnings.useQuery(
+    { userId: selectedUser?.id, limit: 50 },
+    { enabled: !!selectedUser?.id && showWarning }
+  );
 
   const blockUser = trpc.admin.blockUser.useMutation({
     onSuccess: () => { toast.success("Benutzer gesperrt"); utils.admin.listUsers.invalidate(); },
@@ -83,7 +87,16 @@ export default function AdminUsers() {
     onSuccess: () => { toast.success("E-Mail verifiziert"); utils.admin.listUsers.invalidate(); },
   });
   const sendWarning = trpc.admin.sendWarning.useMutation({
-    onSuccess: () => { toast.success("Warnung gesendet"); setShowWarning(false); setWarningMsg(""); },
+    onSuccess: () => {
+      toast.success("Warnung gesendet");
+      setWarningForm({ subject: "Verwarnung", message: "", reason: "" });
+      utils.admin.listWarnings.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const deleteWarning = trpc.admin.deleteWarning.useMutation({
+    onSuccess: () => { toast.success("Warnung gelöscht"); utils.admin.listWarnings.invalidate(); },
+    onError: (e) => toast.error(e.message),
   });
   const setPlan = trpc.subscription.adminSetPlan.useMutation({
     onSuccess: () => { toast.success("Tarif geändert"); setShowPlanModal(false); utils.admin.listUsers.invalidate(); },
@@ -465,31 +478,95 @@ export default function AdminUsers() {
       {/* Warning Modal */}
       {showWarning && selectedUser && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#111827] border border-[#1E293B] rounded-xl w-full max-w-md">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 px-6 py-4 border-b border-[#1E293B]">
-              <h2 className="text-base font-semibold text-[#F1F5F9]">Warnung senden</h2>
-              <Button variant="ghost" size="sm" onClick={() => { setShowWarning(false); setWarningMsg(""); }} className="text-[#64748B]">
+          <div className="bg-[#111827] border border-[#1E293B] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex flex-row items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-[#1E293B]">
+              <div>
+                <h2 className="text-base font-semibold text-[#F1F5F9]">Warnung senden</h2>
+                <p className="text-xs text-[#64748B] mt-1">An: <span className="text-[#CBD5E1]">{selectedUser.name ?? selectedUser.email}</span></p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => { setShowWarning(false); setWarningForm({ subject: "Verwarnung", message: "", reason: "" }); }} className="text-[#64748B]">
                 <X className="w-4 h-4" />
               </Button>
             </div>
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-[#94A3B8]">An: <span className="text-[#F1F5F9]">{selectedUser.name ?? selectedUser.email}</span></p>
-              <textarea
-                placeholder="Nachricht..."
-                value={warningMsg}
-                onChange={e => setWarningMsg(e.target.value)}
-                rows={4}
-                className="w-full bg-[#0F172A] border border-[#1E293B] text-[#F1F5F9] rounded-lg px-3 py-2 text-sm placeholder:text-[#64748B] resize-none"
-              />
-              <div className="flex gap-3 justify-end">
-                <Button variant="outline" onClick={() => { setShowWarning(false); setWarningMsg(""); }} className="border-[#1E293B] text-[#94A3B8]">Abbrechen</Button>
+            <div className="p-4 sm:p-6 space-y-5 overflow-y-auto">
+              <div className="grid gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-[#94A3B8] mb-1.5">Betreff</label>
+                  <Input
+                    value={warningForm.subject}
+                    onChange={e => setWarningForm(f => ({ ...f, subject: e.target.value }))}
+                    placeholder="z.B. Richtlinienverstoß"
+                    className="bg-[#0F172A] border-[#1E293B] text-[#F1F5F9] placeholder:text-[#64748B]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-[#94A3B8] mb-1.5">Nachricht an den Nutzer</label>
+                  <textarea
+                    placeholder="Was soll dem Nutzer direkt angezeigt werden?"
+                    value={warningForm.message}
+                    onChange={e => setWarningForm(f => ({ ...f, message: e.target.value }))}
+                    rows={4}
+                    className="w-full bg-[#0F172A] border border-[#1E293B] text-[#F1F5F9] rounded-lg px-3 py-2 text-sm placeholder:text-[#64748B] resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-[#94A3B8] mb-1.5">Begründung</label>
+                  <textarea
+                    placeholder="Warum wird diese Warnung ausgesprochen?"
+                    value={warningForm.reason}
+                    onChange={e => setWarningForm(f => ({ ...f, reason: e.target.value }))}
+                    rows={3}
+                    className="w-full bg-[#0F172A] border border-[#1E293B] text-[#F1F5F9] rounded-lg px-3 py-2 text-sm placeholder:text-[#64748B] resize-none"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                <Button variant="outline" onClick={() => { setShowWarning(false); setWarningForm({ subject: "Verwarnung", message: "", reason: "" }); }} className="border-[#1E293B] text-[#94A3B8]">Schließen</Button>
                 <Button
-                  onClick={() => sendWarning.mutate({ userId: selectedUser.id, subject: "Verwarnung", message: warningMsg })}
-                  disabled={!warningMsg.trim() || sendWarning.isPending}
+                  onClick={() => sendWarning.mutate({ userId: selectedUser.id, subject: warningForm.subject, message: warningForm.message, reason: warningForm.reason })}
+                  disabled={!warningForm.subject.trim() || !warningForm.message.trim() || !warningForm.reason.trim() || sendWarning.isPending}
                   className="bg-yellow-600 hover:bg-yellow-700 text-white"
                 >
-                  {sendWarning.isPending ? "Sende..." : "Warnung senden"}
+                  {sendWarning.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Warnung senden"}
                 </Button>
+              </div>
+              <div className="border-t border-[#1E293B] pt-5">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <h3 className="text-sm font-semibold text-[#F1F5F9]">Bisherige Warnungen</h3>
+                  <Badge className="bg-yellow-500/10 text-yellow-300">{warningHistory?.total ?? 0}</Badge>
+                </div>
+                {warningHistoryLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-[#94A3B8]"><Loader2 className="w-4 h-4 animate-spin" /> Lade Warnungen...</div>
+                ) : !warningHistory?.items?.length ? (
+                  <p className="text-sm text-[#64748B]">Für diesen Nutzer wurden noch keine Warnungen gespeichert.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {warningHistory.items.map((warning: any) => (
+                      <div key={warning.id} className="rounded-lg border border-[#1E293B] bg-[#0F172A] p-3">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-semibold text-[#F1F5F9] break-words">{warning.subject}</p>
+                              {warning.isDismissed && <Badge className="bg-slate-700 text-slate-300">geschlossen</Badge>}
+                            </div>
+                            <p className="text-xs text-[#64748B] mt-1">{formatDate(warning.createdAt)} · Admin: {warning.admin?.name ?? warning.admin?.email ?? "—"}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteWarning.mutate({ id: warning.id })}
+                            disabled={deleteWarning.isPending}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <p className="text-sm text-[#CBD5E1] mt-3 whitespace-pre-wrap break-words">{warning.message}</p>
+                        <p className="text-xs text-[#94A3B8] mt-2 whitespace-pre-wrap break-words"><span className="font-semibold text-yellow-300">Begründung:</span> {warning.reason}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

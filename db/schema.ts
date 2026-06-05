@@ -90,6 +90,25 @@ export const apiKeys = mysqlTable("api_keys", {
   keyHashIdx: index("key_hash_idx").on(t.keyHash),
 }));
 
+// ===================== USER WARNINGS =====================
+export const userWarnings = mysqlTable("user_warnings", {
+  id: serial("id").primaryKey(),
+  userId: bigint("user_id", { mode: "number", unsigned: true }).references(() => users.id, { onDelete: "cascade" }).notNull(),
+  adminId: bigint("admin_id", { mode: "number", unsigned: true }).references(() => users.id, { onDelete: "set null" }),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  reason: text("reason").notNull(),
+  isDismissed: boolean("is_dismissed").notNull().default(false),
+  dismissedAt: timestamp("dismissed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+}, (t) => ({
+  userIdx: index("user_warnings_user_idx").on(t.userId),
+  adminIdx: index("user_warnings_admin_idx").on(t.adminId),
+  dismissedIdx: index("user_warnings_dismissed_idx").on(t.userId, t.isDismissed),
+  createdIdx: index("user_warnings_created_idx").on(t.createdAt),
+}));
+
 // ===================== CATEGORIES =====================
 export const categories = mysqlTable("categories", {
   id: serial("id").primaryKey(),

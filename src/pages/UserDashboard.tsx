@@ -14,13 +14,11 @@ import {
   LogOut,
   Loader2,
   Package,
-  Mail,
   Shield,
   Store,
   Key,
   Copy,
   CheckCircle,
-  Clock,
   TrendingUp,
   FileText,
   Plus,
@@ -36,11 +34,13 @@ import {
   Wallet,
   ArrowUpRight,
   ArrowDownLeft,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
 const navItems = [
   { id: "overview", label: "Übersicht", icon: LayoutDashboard },
+  { id: "warnings", label: "Warnungen", icon: AlertTriangle },
   { id: "orders", label: "Bestellungen", icon: ShoppingBag },
   { id: "downloads", label: "Downloads & Keys", icon: Download },
   { id: "tickets", label: "Support", icon: Ticket },
@@ -85,8 +85,155 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${s.cls}`}>{s.label}</span>;
 }
 
+
+type UserWarning = {
+  id: number;
+  subject: string;
+  message: string;
+  reason: string;
+  isDismissed: boolean;
+  createdAt: Date | string | null;
+  dismissedAt?: Date | string | null;
+};
+
+function WarningStatusBadge({ dismissed }: { dismissed: boolean }) {
+  return (
+    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${dismissed
+      ? "bg-slate-500/10 text-slate-400 border-slate-500/20"
+      : "bg-amber-500/10 text-amber-300 border-amber-500/30"
+    }`}>
+      {dismissed ? "Geschlossen" : "Neu"}
+    </span>
+  );
+}
+
+function UserWarningNotice({
+  warnings,
+  dismissingId,
+  onDismiss,
+  onOpenWarnings,
+}: {
+  warnings: UserWarning[];
+  dismissingId: number | null;
+  onDismiss: (id: number) => void;
+  onOpenWarnings: () => void;
+}) {
+  if (!warnings.length) return null;
+  const warning = warnings[0];
+  const additionalCount = Math.max(0, warnings.length - 1);
+
+  return (
+    <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 shadow-lg shadow-amber-950/10">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 gap-3">
+          <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-300">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-amber-100">{warning.subject}</p>
+              <WarningStatusBadge dismissed={false} />
+              {additionalCount > 0 && <span className="text-xs text-amber-200/80">+{additionalCount} weitere neue Warnung(en)</span>}
+            </div>
+            <p className="text-sm text-[#F8FAFC] whitespace-pre-wrap break-words">{warning.message}</p>
+            <div className="rounded-lg border border-amber-500/20 bg-[#0F172A]/70 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-300">Begründung</p>
+              <p className="mt-1 text-sm text-[#CBD5E1] whitespace-pre-wrap break-words">{warning.reason}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-[#94A3B8]">
+              <span>Gesendet am {formatDateTime(warning.createdAt)}</span>
+              <button type="button" onClick={onOpenWarnings} className="font-medium text-amber-300 hover:text-amber-200">
+                Alle Warnungen ansehen
+              </button>
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => onDismiss(warning.id)}
+          disabled={dismissingId === warning.id}
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-amber-500/30 px-3 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-500/15 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-shrink-0"
+          aria-label="Warnung schließen"
+        >
+          {dismissingId === warning.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+          Schließen
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function WarningsTab({
+  warnings,
+  isLoading,
+  dismissingId,
+  onDismiss,
+}: {
+  warnings: UserWarning[];
+  isLoading: boolean;
+  dismissingId: number | null;
+  onDismiss: (id: number) => void;
+}) {
+  if (isLoading) {
+    return <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 text-amber-300 animate-spin" /></div>;
+  }
+
+  if (!warnings.length) {
+    return (
+      <div className="rounded-xl border border-[#1E293B] bg-[#111827] py-16 text-center">
+        <AlertTriangle className="mx-auto mb-3 h-10 w-10 text-[#64748B]" />
+        <p className="text-sm font-medium text-[#F1F5F9]">Keine Warnungen vorhanden</p>
+        <p className="mt-1 text-xs text-[#64748B]">Wenn ein Admin dir eine Warnung sendet, erscheint sie hier dauerhaft einsehbar.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      <div className="rounded-xl border border-[#1E293B] bg-[#111827] p-4">
+        <p className="text-sm font-semibold text-[#F1F5F9]">Warnungsverlauf</p>
+        <p className="mt-1 text-xs text-[#64748B]">Geschlossene Warnungen werden nicht mehr automatisch eingeblendet, bleiben aber hier sichtbar.</p>
+      </div>
+      {warnings.map((warning) => (
+        <div key={warning.id} className={`rounded-xl border p-4 ${warning.isDismissed ? "border-[#1E293B] bg-[#111827]" : "border-amber-500/30 bg-amber-500/10"}`}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-semibold text-[#F1F5F9] break-words">{warning.subject}</h3>
+                <WarningStatusBadge dismissed={warning.isDismissed} />
+              </div>
+              <p className="text-sm text-[#CBD5E1] whitespace-pre-wrap break-words">{warning.message}</p>
+              <div className="rounded-lg border border-[#2D3748] bg-[#0F172A]/70 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">Begründung</p>
+                <p className="mt-1 text-sm text-[#CBD5E1] whitespace-pre-wrap break-words">{warning.reason}</p>
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#64748B]">
+                <span>Gesendet: {formatDateTime(warning.createdAt)}</span>
+                {warning.dismissedAt && <span>Geschlossen: {formatDateTime(warning.dismissedAt)}</span>}
+              </div>
+            </div>
+            {!warning.isDismissed && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onDismiss(warning.id)}
+                disabled={dismissingId === warning.id}
+                className="border-[#2D3748] bg-transparent text-[#F1F5F9] hover:bg-[#1A2235] sm:flex-shrink-0"
+              >
+                {dismissingId === warning.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                Schließen
+              </Button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Overview Tab ────────────────────────────────────────────────────────────
-function OverviewTab({ user, ordersData, ticketData, onTabChange }: any) {
+function OverviewTab({ ordersData, ticketData, onTabChange }: any) {
   const orders = ordersData?.items ?? [];
   const tickets = ticketData?.items ?? [];
   const totalSpent = orders
@@ -809,7 +956,7 @@ function SettingsTab({ user }: any) {
 function CreditsTab({ user }: any) {
   const { data: platformCreditsData, isLoading: pcLoading } = trpc.credits.getMyPlatformCredits.useQuery(undefined, { enabled: !!user });
   const { data: platformHistoryData } = trpc.credits.getMyPlatformCreditHistory.useQuery({ page: 1, limit: 20 }, { enabled: !!user });
-  const { data: shopCreditsData, isLoading: scLoading } = trpc.credits.getMyShopCreditHistory.useQuery({ shopId: 0, page: 1, limit: 5 }, { enabled: false }); // placeholder
+  const { isLoading: scLoading } = trpc.credits.getMyShopCreditHistory.useQuery({ shopId: 0, page: 1, limit: 5 }, { enabled: false }); // placeholder
   // Shop credits overview - use getShopCreditInfo for each shop
 
   const platformBalance = platformCreditsData?.balance ?? 0;
@@ -930,8 +1077,31 @@ export default function UserDashboard() {
     undefined,
     { enabled: !!user }
   );
+  const utils = trpc.useUtils();
+  const { data: warningHistory = [], isLoading: warningsLoading } = trpc.profile.listWarnings.useQuery(
+    undefined,
+    { enabled: !!user }
+  );
+  const { data: activeWarnings = [] } = trpc.profile.listUndismissedWarnings.useQuery(
+    undefined,
+    { enabled: !!user, refetchInterval: 15000, refetchOnWindowFocus: true }
+  );
+  const [dismissingWarningId, setDismissingWarningId] = useState<number | null>(null);
+  const dismissWarning = trpc.profile.dismissWarning.useMutation({
+    onMutate: ({ id }) => setDismissingWarningId(id),
+    onSuccess: async () => {
+      await Promise.all([
+        utils.profile.listWarnings.invalidate(),
+        utils.profile.listUndismissedWarnings.invalidate(),
+      ]);
+      toast.success("Warnung geschlossen");
+    },
+    onError: () => toast.error("Warnung konnte nicht geschlossen werden"),
+    onSettled: () => setDismissingWarningId(null),
+  });
 
   const handleTabChange = (value: string) => navigate(`/dashboard/${value}`);
+  const handleDismissWarning = (id: number) => dismissWarning.mutate({ id });
 
   if (authLoading) {
     return (
@@ -946,6 +1116,7 @@ export default function UserDashboard() {
 
   const tabTitles: Record<string, string> = {
     overview: `Hallo, ${user.name?.split(" ")[0] ?? "Benutzer"}!`,
+    warnings: "Meine Warnungen",
     orders: "Meine Bestellungen",
     downloads: "Downloads & Lizenzschlüssel",
     tickets: "Support-Tickets",
@@ -1024,7 +1195,17 @@ export default function UserDashboard() {
               {activeTab === "overview" && <p className="text-sm text-[#64748B] mt-1">Willkommen in deinem Käufer-Dashboard</p>}
             </div>
 
+            {activeTab !== "warnings" && (
+              <UserWarningNotice
+                warnings={activeWarnings}
+                dismissingId={dismissingWarningId}
+                onDismiss={handleDismissWarning}
+                onOpenWarnings={() => handleTabChange("warnings")}
+              />
+            )}
+
             {activeTab === "overview" && <OverviewTab user={user} ordersData={ordersData} ticketData={ticketData} onTabChange={handleTabChange} />}
+            {activeTab === "warnings" && <WarningsTab warnings={warningHistory} isLoading={warningsLoading} dismissingId={dismissingWarningId} onDismiss={handleDismissWarning} />}
             {activeTab === "orders" && <OrdersTab ordersData={ordersData} ordersLoading={ordersLoading} />}
             {activeTab === "downloads" && <DownloadsTab ordersData={ordersData} ordersLoading={ordersLoading} />}
             {activeTab === "tickets" && <TicketsTab ticketData={ticketData} user={user} />}

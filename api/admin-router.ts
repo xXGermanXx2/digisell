@@ -8,7 +8,7 @@ import {
   products, categories, reviews, tickets, ticketMessages,
   subscriptions, coupons, fraudRules, shopSettings,
   deliveryLogs, licenseKeys, webhooks,
-  shops, reports, loginLogs, adminRoles, moderationLogs, blocklists, bannedWords,
+  shops, reports, loginLogs, adminRoles, moderationLogs, blocklists, bannedWords, userWarnings,
 } from "@db/schema";
 import { Errors } from "@contracts/errors";
 import { sendEmail } from "./lib/email";
@@ -280,27 +280,74 @@ export const adminRouter = createRouter({
     }),
 
   sendWarning: adminQuery
-    .input(z.object({ userId: z.number().int().positive(), subject: z.string(), message: z.string() }))
+    .input(z.object({
+      userId: z.number().int().positive(),
+      subject: z.string().trim().min(3).max(255),
+      message: z.string().trim().min(3).max(4000),
+      reason: z.string().trim().min(3).max(4000),
+    }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
       const user = await db.query.users.findFirst({ where: eq(users.id, input.userId) });
-      if (!user?.email) throw Errors.notFound("Benutzer nicht gefunden.");
-
-      await sendEmail({
-        to: user.email,
-        subject: `[DigiSell] Warnung: ${input.subject}`,
-        html: `<p>${input.message}</p>`,
+      if (!user) throw Errors.notFound("Benutzer nicht gefunden.");
+      await db.insert(userWarnings).values({
+        userId: input.userId,
+        adminId: ctx.user.id,
+        subject: input.subject,
+        message: input.message,
+        reason: input.reason,
       });
-
+      if (user.email) {
+        await sendEmail({
+          to: user.email,
+          subject: `[DigiSell] Warnung: ${input.subject}`,
+          html: `<p><strong>${input.subject}</strong></p><p>${input.message}</p><p><strong>Begründung:</strong> ${input.reason}</p>`,
+        });
+      }
       await db.insert(systemLogs).values({
         level: "warn", category: "admin",
         message: `Admin ${ctx.user.id} sent warning to user ${input.userId}: ${input.subject}`,
-        metadata: { adminId: ctx.user.id, userId: input.userId },
+        metadata: { adminId: ctx.user.id, userId: input.userId, subject: input.subject },
       });
-
       return { success: true };
     }),
-
+  listWarnings: adminQuery
+    .input(z.object({
+      userId: z.number().int().positive().optional(),
+      page: z.number().int().min(1).default(1),
+      limit: z.number().int().min(1).max(100).default(20),
+    }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const offset = (input.page - 1) * input.limit;
+      const where = input.userId ? eq(userWarnings.userId, input.userId) : undefined;
+      const [items, total] = await Promise.all([
+        db.query.userWarnings.findMany({
+          where,
+          with: {
+            user: { columns: { id: true, name: true, email: true } },
+            admin: { columns: { id: true, name: true, email: true } },
+          },
+          orderBy: [desc(userWarnings.createdAt)],
+          limit: input.limit,
+          offset,
+        }),
+        db.select({ count: sql<number>`count(*)` }).from(userWarnings).where(where),
+      ]);
+      return { items, total: Number(total[0]?.count ?? 0), page: input.page, limit: input.limit };
+    }),
+  deleteWarning: adminQuery
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      await db.delete(userWarnings).where(eq(userWarnings.id, input.id));
+      await db.insert(systemLogs).values({
+        level: "warn", category: "admin",
+        message: `Admin ${ctx.user.id} deleted warning ${input.id}`,
+        metadata: { adminId: ctx.user.id, warningId: input.id },
+      });
+      return { success: true };
+    }),
   // ═══════════════════════════════════════════════════════════
   // PRODUKTVERWALTUNG — Admin-Sicht
   // ═══════════════════════════════════════════════════════════
