@@ -33,7 +33,8 @@ export default function Login() {
   useEffect(() => {
     if (user) {
       if (user.role === "admin") navigate("/admin");
-      else navigate("/seller");
+      else if (user.role === "seller") navigate("/seller");
+      else navigate("/dashboard");
     }
   }, [user, navigate]);
 
@@ -46,7 +47,8 @@ export default function Login() {
       // Cache leeren und dann rollenbasiert weiterleiten
       utils.auth.me.reset();
       if (data.role === "admin") navigate("/admin");
-      else navigate("/seller");
+      else if (data.role === "seller") navigate("/seller");
+      else navigate("/dashboard");
     },
     onError: (e: any) => setError(e.message),
   });

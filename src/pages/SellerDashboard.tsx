@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/providers/trpc";
@@ -1077,6 +1077,13 @@ export default function SellerDashboard() {
   const { user, logout } = useAuth({ redirectOnUnauthenticated: true });
   const { data: myShop } = trpc.seller.getMyShop.useQuery();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Rollenprüfung: nur seller und admin dürfen das Seller-Dashboard sehen
+  useEffect(() => {
+    if (user && user.role !== "seller" && user.role !== "admin") {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
 
   const activeTab = tab ?? "overview";
 

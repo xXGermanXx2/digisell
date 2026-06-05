@@ -29,7 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, logout } = useAuth({ redirectOnUnauthenticated: true });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isAdmin = user?.role === "admin" || user?.role === "seller";
+  const isAdmin = user?.role === "admin";
   if (user && !isAdmin) {
     navigate("/dashboard");
     return null;
