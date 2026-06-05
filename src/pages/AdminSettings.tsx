@@ -100,7 +100,7 @@ export default function AdminSettings() {
                     <Label className="text-xs text-[#94A3B8] uppercase tracking-wider">Beschreibung</Label>
                     <Input value={form.shopDescription} onChange={(e) => setForm({ ...form, shopDescription: e.target.value })} className="mt-1.5 bg-[#1A2235] border-[#2D3748] text-[#F1F5F9]" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-xs text-[#94A3B8] uppercase tracking-wider">Währung</Label>
                       <Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} className="mt-1.5 bg-[#1A2235] border-[#2D3748] text-[#F1F5F9]" maxLength={3} />
@@ -110,7 +110,7 @@ export default function AdminSettings() {
                       <Input value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} className="mt-1.5 bg-[#1A2235] border-[#2D3748] text-[#F1F5F9]" />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-xs text-[#94A3B8] uppercase tracking-wider">Gebühren (%)</Label>
                       <Input value={form.feePercentage} onChange={(e) => setForm({ ...form, feePercentage: e.target.value })} className="mt-1.5 bg-[#1A2235] border-[#2D3748] text-[#F1F5F9]" type="number" step="0.01" />
@@ -120,14 +120,14 @@ export default function AdminSettings() {
                       <Input value={form.taxRate} onChange={(e) => setForm({ ...form, taxRate: e.target.value })} className="mt-1.5 bg-[#1A2235] border-[#2D3748] text-[#F1F5F9]" type="number" step="0.01" />
                     </div>
                   </div>
-                  <div className="flex items-center justify-between pt-1">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pt-1">
                     <div>
                       <Label className="text-xs text-[#94A3B8] uppercase tracking-wider">Steuer inklusive</Label>
                       <p className="text-xs text-[#64748B] mt-0.5">Steuer ist im Preis enthalten</p>
                     </div>
                     <Switch checked={form.taxIncluded} onCheckedChange={(v) => setForm({ ...form, taxIncluded: v })} className="data-[state=checked]:bg-[#6366F1]" />
                   </div>
-                  <div className="flex items-center justify-between pt-1">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pt-1">
                     <div>
                       <Label className="text-xs text-[#94A3B8] uppercase tracking-wider">Wartungsmodus</Label>
                       <p className="text-xs text-[#64748B] mt-0.5">Shop für Kunden unsichtbar schalten</p>
@@ -143,7 +143,7 @@ export default function AdminSettings() {
                     <Mail className="w-4 h-4 text-[#6366F1]" />
                     <p className="text-sm font-medium text-[#F1F5F9]">SMTP-Konfiguration</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-xs text-[#94A3B8] uppercase tracking-wider">SMTP-Host</Label>
                       <Input value={form.smtpHost} onChange={(e) => setForm({ ...form, smtpHost: e.target.value })} placeholder="smtp.gmail.com" className="mt-1.5 bg-[#1A2235] border-[#2D3748] text-[#F1F5F9]" />
@@ -200,7 +200,7 @@ export default function AdminSettings() {
                     <Label className="text-xs text-[#94A3B8] uppercase tracking-wider">Secret</Label>
                     <Input value={form.paypalSecret} onChange={(e) => setForm({ ...form, paypalSecret: e.target.value })} type="password" placeholder="••••••••" className="mt-1.5 bg-[#1A2235] border-[#2D3748] text-[#F1F5F9] font-mono text-xs" />
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     <Label className="text-xs text-[#94A3B8] uppercase tracking-wider">Live-Modus</Label>
                     <Switch checked={form.paypalMode === "live"} onCheckedChange={(v) => setForm({ ...form, paypalMode: v ? "live" : "sandbox" })} className="data-[state=checked]:bg-[#6366F1]" />
                   </div>
@@ -231,7 +231,7 @@ export default function AdminSettings() {
                     <Shield className="w-4 h-4 text-[#6366F1]" />
                     <p className="text-sm font-medium text-[#F1F5F9]">Sicherheitsrichtlinien</p>
                   </div>
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-[#1A2235] border border-[#2D3748]">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 p-4 rounded-lg bg-[#1A2235] border border-[#2D3748]">
                     <div>
                       <p className="text-sm font-medium text-[#F1F5F9]">Wartungsmodus</p>
                       <p className="text-xs text-[#64748B] mt-0.5">Plattform für alle Nutzer sperren</p>

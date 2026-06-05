@@ -123,7 +123,7 @@ export default function AdminProducts() {
                 Neues Produkt
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-[#111827] border-[#2D3748] text-[#F1F5F9] max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogContent className="w-[calc(100vw-1rem)] sm:w-full bg-[#111827] border-[#2D3748] text-[#F1F5F9] max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-lg font-semibold">
                   {editingProduct ? "Produkt bearbeiten" : "Produkt erstellen"}
@@ -156,7 +156,7 @@ export default function AdminProducts() {
                     className="bg-[#1A2235] border-[#2D3748] text-[#F1F5F9] mt-1 min-h-[80px]"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-[#94A3B8]">Preis (&euro;)</Label>
                     <Input
@@ -179,7 +179,7 @@ export default function AdminProducts() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-[#94A3B8]">Kategorie</Label>
                     <Select value={form.categoryId} onValueChange={(v) => setForm({ ...form, categoryId: v })}>
@@ -239,7 +239,7 @@ export default function AdminProducts() {
                     />
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-[#94A3B8]">Bestand (-1 = unbegrenzt)</Label>
                     <Input
@@ -295,7 +295,7 @@ export default function AdminProducts() {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40 bg-[#111827] border-[#2D3748] text-[#F1F5F9]">
+            <SelectTrigger className="w-full sm:w-40 bg-[#111827] border-[#2D3748] text-[#F1F5F9]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent className="bg-[#1E293B] border-[#2D3748]">
@@ -314,7 +314,7 @@ export default function AdminProducts() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="min-w-[760px] w-full">
                 <thead>
                   <tr className="bg-[#1A2235]">
                     <th className="text-left text-xs font-medium text-[#64748B] uppercase tracking-wider px-6 py-3">Produkt</th>

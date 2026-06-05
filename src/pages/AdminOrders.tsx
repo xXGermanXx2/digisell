@@ -48,7 +48,7 @@ export default function AdminOrders() {
   return (
     <AdminLayout>
       <div className="space-y-5">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="flex items-center gap-3">
             <ShoppingBag className="w-6 h-6 text-indigo-400" />
             <div>
@@ -67,7 +67,7 @@ export default function AdminOrders() {
                 className="pl-9 bg-[#0F172A] border-[#1E293B] text-[#F1F5F9] placeholder:text-[#64748B]" />
             </div>
             <Select value={status} onValueChange={v => { setStatus(v); setPage(1); }}>
-              <SelectTrigger className="w-40 bg-[#0F172A] border-[#1E293B] text-[#F1F5F9]">
+              <SelectTrigger className="w-full sm:w-40 bg-[#0F172A] border-[#1E293B] text-[#F1F5F9]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-[#111827] border-[#1E293B]">
@@ -143,7 +143,7 @@ export default function AdminOrders() {
             </Table>
           </div>
           {totalPages > 1 && (
-            <div className="px-5 py-3 border-t border-[#1E293B] flex items-center justify-between">
+            <div className="px-5 py-3 border-t border-[#1E293B] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <p className="text-sm text-[#64748B]">Seite {page} von {totalPages}</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="border-[#1E293B] text-[#94A3B8] h-8"><ChevronLeft className="w-4 h-4" /></Button>
@@ -158,12 +158,12 @@ export default function AdminOrders() {
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-[#1E293B] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1E293B]">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 px-6 py-4 border-b border-[#1E293B]">
               <h2 className="text-lg font-semibold text-[#F1F5F9]">Bestellung {selectedOrder.orderNumber}</h2>
               <Button variant="ghost" size="sm" onClick={() => setSelectedOrder(null)} className="text-[#64748B]">✕</Button>
             </div>
             <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div><p className="text-[#64748B]">Kunde</p><p className="text-[#F1F5F9]">{selectedOrder.customer?.name ?? "Gast"}</p></div>
                 <div><p className="text-[#64748B]">E-Mail</p><p className="text-[#F1F5F9]">{selectedOrder.customerEmail}</p></div>
                 <div><p className="text-[#64748B]">Betrag</p><p className="text-[#F1F5F9] font-bold">{Number(selectedOrder.total).toFixed(2)}€</p></div>
@@ -176,7 +176,7 @@ export default function AdminOrders() {
                   <h4 className="text-sm font-medium text-[#94A3B8] mb-2">Bestellpositionen</h4>
                   <div className="space-y-2">
                     {selectedOrder.items.map((item: any) => (
-                      <div key={item.id} className="flex justify-between bg-[#0F172A] rounded px-4 py-2 text-sm">
+                      <div key={item.id} className="flex flex-col sm:flex-row sm:justify-between gap-3 bg-[#0F172A] rounded px-4 py-2 text-sm">
                         <span className="text-[#F1F5F9]">{item.product?.title ?? "Produkt"}</span>
                         <span className="text-[#94A3B8]">{item.quantity}x {Number(item.price).toFixed(2)}€</span>
                       </div>

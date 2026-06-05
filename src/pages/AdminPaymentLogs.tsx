@@ -46,7 +46,7 @@ export default function AdminPaymentLogs() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
             <CreditCard className="w-7 h-7 text-indigo-400" />
@@ -61,7 +61,7 @@ export default function AdminPaymentLogs() {
 
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {[
             { label: "Gesamt", value: stats.total, icon: <TrendingUp className="w-4 h-4" />, color: "text-white" },
             { label: "Volumen", value: `€ ${parseFloat(stats.totalVolume).toFixed(2)}`, icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400" },
@@ -122,7 +122,7 @@ export default function AdminPaymentLogs() {
 
       {/* Table */}
       <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="min-w-[760px] w-full text-sm">
           <thead>
             <tr className="border-b border-white/10 bg-white/5">
               <th className="text-left p-4 text-white/50 font-medium">ID</th>
@@ -165,11 +165,12 @@ export default function AdminPaymentLogs() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <p className="text-sm text-white/40">
             Seite {page} von {totalPages} · {data?.total ?? 0} Einträge
           </p>

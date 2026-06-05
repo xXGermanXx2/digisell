@@ -101,13 +101,13 @@ export default function AdminDashboard() {
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <div className="bg-[#111827] rounded-xl card-shadow overflow-hidden">
-            <div className="px-6 py-4 border-b border-[#1E293B] flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-[#1E293B] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <h2 className="text-base font-semibold text-[#F1F5F9]">Neueste Bestellungen</h2>
               <span className="text-xs text-[#64748B]">Letzte 5</span>
             </div>
             <div className="divide-y divide-[#1E293B]">
               {recentOrders?.items?.map((order) => (
-                <div key={order.id} className="px-6 py-4 flex items-center justify-between hover:bg-[#1A2235]/30 transition-colors">
+                <div key={order.id} className="px-6 py-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 hover:bg-[#1A2235]/30 transition-colors">
                   <div>
                     <p className="text-sm font-medium text-[#F1F5F9]">{order.orderNumber}</p>
                     <p className="text-xs text-[#64748B]">{order.customerEmail}</p>
@@ -132,7 +132,7 @@ export default function AdminDashboard() {
           </div>
 
           <div className="bg-[#111827] rounded-xl card-shadow overflow-hidden">
-            <div className="px-6 py-4 border-b border-[#1E293B] flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-[#1E293B] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <h2 className="text-base font-semibold text-[#F1F5F9]">Top Produkte</h2>
               <span className="text-xs text-[#64748B]">Nach Verk\u00e4ufen</span>
             </div>

@@ -39,7 +39,7 @@ export default function AdminReports() {
         <CardContent className="pt-4">
           <div className="flex gap-3 flex-wrap">
             <Select value={status} onValueChange={v => { setStatus(v); setPage(1); }}>
-              <SelectTrigger className="w-40 bg-gray-800 border-gray-700 text-white">
+              <SelectTrigger className="w-full sm:w-40 bg-gray-800 border-gray-700 text-white">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-700">
@@ -51,7 +51,7 @@ export default function AdminReports() {
               </SelectContent>
             </Select>
             <Select value={type} onValueChange={v => { setType(v); setPage(1); }}>
-              <SelectTrigger className="w-40 bg-gray-800 border-gray-700 text-white">
+              <SelectTrigger className="w-full sm:w-40 bg-gray-800 border-gray-700 text-white">
                 <SelectValue placeholder="Typ" />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-700">

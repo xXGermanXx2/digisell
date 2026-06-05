@@ -53,7 +53,7 @@ export default function AdminLogs() {
                   placeholder="Suchen..." className="pl-9 bg-slate-800 border-slate-700 text-white" />
               </div>
               <Select value={level} onValueChange={v => { setLevel(v); setPage(1); }}>
-                <SelectTrigger className="w-36 bg-slate-800 border-slate-700 text-white">
+                <SelectTrigger className="w-full sm:w-36 bg-slate-800 border-slate-700 text-white">
                   <SelectValue placeholder="Level" />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
@@ -113,7 +113,7 @@ export default function AdminLogs() {
         </Card>
 
         {data && data.total > 50 && (
-          <div className="flex items-center justify-between mt-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mt-4">
             <p className="text-slate-400 text-sm">{data.total} Einträge · Seite {page} von {Math.ceil(data.total / 50)}</p>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}

@@ -48,7 +48,7 @@ export default function AdminSubscriptions() {
         </div>
 
         {/* Statistiken */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: "Gesamt", value: items.length, icon: Users, color: "text-blue-400" },
             { label: "Aktiv", value: activeCount, icon: TrendingUp, color: "text-green-400" },
@@ -118,7 +118,7 @@ export default function AdminSubscriptions() {
 
       {/* Verlängerungs-Dialog */}
       <Dialog open={extendId !== null} onOpenChange={() => setExtendId(null)}>
-        <DialogContent className="bg-[#111827] border-[#1E293B] text-[#F1F5F9]">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full bg-[#111827] border-[#1E293B] text-[#F1F5F9]">
           <DialogHeader><DialogTitle>Abonnement verlängern</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>

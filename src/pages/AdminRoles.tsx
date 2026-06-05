@@ -62,7 +62,7 @@ export default function AdminRoles() {
   return (
     <AdminLayout>
       <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
               <ShieldCheck className="w-6 h-6 text-purple-400" /> Admin-Rollen
@@ -134,14 +134,14 @@ export default function AdminRoles() {
 
         {/* Erstellen Dialog */}
         <Dialog open={showCreate} onOpenChange={setShowCreate}>
-          <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-full bg-gray-900 border-gray-800 text-white max-w-2xl">
             <DialogHeader><DialogTitle>Neue Admin-Rolle erstellen</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <Input placeholder="Rollenname" value={name} onChange={e => setName(e.target.value)} className="bg-gray-800 border-gray-700 text-white" />
               <Input placeholder="Beschreibung (optional)" value={description} onChange={e => setDescription(e.target.value)} className="bg-gray-800 border-gray-700 text-white" />
               <div>
                 <p className="text-gray-400 text-sm mb-2">Berechtigungen auswählen:</p>
-                <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
                   {ALL_PERMISSIONS.map(p => (
                     <label key={p} className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" checked={permissions.includes(p)} onChange={() => togglePerm(p)} className="rounded border-gray-600" />
@@ -160,14 +160,14 @@ export default function AdminRoles() {
 
         {/* Bearbeiten Dialog */}
         <Dialog open={editRole !== null} onOpenChange={() => setEditRole(null)}>
-          <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-full bg-gray-900 border-gray-800 text-white max-w-2xl">
             <DialogHeader><DialogTitle>Rolle bearbeiten</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <Input placeholder="Rollenname" value={name} onChange={e => setName(e.target.value)} className="bg-gray-800 border-gray-700 text-white" />
               <Input placeholder="Beschreibung (optional)" value={description} onChange={e => setDescription(e.target.value)} className="bg-gray-800 border-gray-700 text-white" />
               <div>
                 <p className="text-gray-400 text-sm mb-2">Berechtigungen:</p>
-                <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
                   {ALL_PERMISSIONS.map(p => (
                     <label key={p} className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" checked={permissions.includes(p)} onChange={() => togglePerm(p)} className="rounded border-gray-600" />
@@ -186,7 +186,7 @@ export default function AdminRoles() {
 
         {/* Rolle zuweisen Dialog */}
         <Dialog open={showAssign} onOpenChange={setShowAssign}>
-          <DialogContent className="bg-gray-900 border-gray-800 text-white">
+          <DialogContent className="w-[calc(100vw-1rem)] sm:w-full bg-gray-900 border-gray-800 text-white">
             <DialogHeader><DialogTitle>Rolle einem Nutzer zuweisen</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div>

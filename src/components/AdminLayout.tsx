@@ -38,16 +38,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isActive = (item: { path: string; exact?: boolean }) =>
     item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
 
-  const NavContent = () => (
+  const NavContent = ({ showClose = false }: { showClose?: boolean } = {}) => (
     <>
       <div className="flex items-center gap-2 h-16 px-4 border-b border-[#1E293B]">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center">
+        <Link to="/" className="flex min-w-0 items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center flex-shrink-0">
             <Store className="w-4 h-4 text-white" />
           </div>
-          <span className="text-lg font-bold bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">DigiSell</span>
+          <span className="truncate text-lg font-bold bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">DigiSell</span>
         </Link>
-        <span className="ml-auto text-[10px] font-medium text-[#6366F1] bg-[#6366F1]/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Admin</span>
+        <span className="ml-auto shrink-0 text-[10px] font-medium text-[#6366F1] bg-[#6366F1]/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Admin</span>
+        {showClose && (
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(false)}
+            className="ml-1 inline-flex min-h-10 min-w-10 items-center justify-center rounded-lg text-[#94A3B8] hover:bg-[#1A2235] hover:text-[#F1F5F9]"
+            aria-label="Admin-Menü schließen"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
       </div>
       <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
         {adminNavItems.map((item) => {
@@ -96,8 +106,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/60" onClick={() => setMobileMenuOpen(false)} />
-          <aside className="relative w-64 flex flex-col bg-[#0F172A] border-r border-[#1E293B] h-full z-50">
-            <NavContent />
+          <aside className="relative w-[min(20rem,85vw)] flex flex-col bg-[#0F172A] border-r border-[#1E293B] h-full z-50">
+            <NavContent showClose />
           </aside>
         </div>
       )}
@@ -105,14 +115,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main Content */}
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
         {/* Mobile Header */}
-        <header className="lg:hidden flex items-center gap-3 h-14 px-4 bg-[#0F172A] border-b border-[#1E293B] sticky top-0 z-20">
-          <button onClick={() => setMobileMenuOpen(true)} className="text-[#94A3B8] hover:text-[#F1F5F9]">
+        <header className="lg:hidden flex items-center gap-3 h-14 px-3 sm:px-4 bg-[#0F172A] border-b border-[#1E293B] sticky top-0 z-20">
+          <button onClick={() => setMobileMenuOpen(true)} className="min-h-10 min-w-10 inline-flex items-center justify-center rounded-lg text-[#94A3B8] hover:bg-[#1A2235] hover:text-[#F1F5F9]">
             <Menu className="w-5 h-5" />
           </button>
-          <span className="text-base font-bold bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">DigiSell Admin</span>
+          <span className="min-w-0 truncate text-base font-bold bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">DigiSell Admin</span>
         </header>
 
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="flex-1 overflow-x-hidden p-3 sm:p-4 lg:p-6">
           {children}
         </main>
       </div>

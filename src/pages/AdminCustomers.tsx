@@ -38,7 +38,7 @@ export default function AdminCustomers() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="min-w-[760px] w-full">
                 <thead>
                   <tr className="bg-[#1A2235]">
                     <th className="text-left text-xs font-medium text-[#64748B] uppercase tracking-wider px-6 py-3">Kunde</th>

@@ -79,7 +79,7 @@ export default function AdminDashboard() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-[#F1F5F9]">Admin Dashboard</h1>
             <p className="text-[#94A3B8] text-sm mt-1">Plattformübersicht in Echtzeit</p>
@@ -92,7 +92,7 @@ export default function AdminDashboard() {
         {/* Revenue Stats */}
         <div>
           <p className="text-xs font-medium text-[#64748B] uppercase tracking-wider mb-3">Umsatz</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard title="Gesamtumsatz" value={formatCurrency(s?.revenueTotal ?? 0)} icon={DollarSign} color="green" />
             <StatCard title="Heute" value={formatCurrency(s?.revenueToday ?? 0)} sub={`${s?.todayOrders ?? 0} Bestellungen`} icon={TrendingUp} color="blue" />
             <StatCard title="Diese Woche" value={formatCurrency(s?.revenueWeek ?? 0)} sub={`${s?.weekOrders ?? 0} Bestellungen`} icon={TrendingUp} color="purple" />
@@ -103,7 +103,7 @@ export default function AdminDashboard() {
         {/* Platform Stats */}
         <div>
           <p className="text-xs font-medium text-[#64748B] uppercase tracking-wider mb-3">Plattform</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard title="Nutzer gesamt" value={s?.totalUsers ?? 0} sub={`${s?.activeUsers ?? 0} aktiv`} icon={Users} color="blue" />
             <StatCard title="Produkte" value={s?.totalProducts ?? 0} icon={Package} color="purple" />
             <StatCard title="Bestellungen" value={s?.totalOrders ?? 0} icon={ShoppingBag} color="orange" />
@@ -114,7 +114,7 @@ export default function AdminDashboard() {
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-[#111827] rounded-xl border border-[#1E293B] p-5">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
               <h2 className="text-base font-semibold text-[#F1F5F9]">Umsatzverlauf</h2>
               <div className="flex gap-1">
                 {[7, 30, 90].map(d => (
@@ -161,13 +161,13 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Last Orders */}
           <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#1E293B] flex items-center justify-between">
+            <div className="px-5 py-4 border-b border-[#1E293B] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <h2 className="text-sm font-semibold text-[#F1F5F9]">Letzte Bestellungen</h2>
               <Link to="/admin/orders" className="text-xs text-[#6366F1] hover:underline">Alle →</Link>
             </div>
             <div className="divide-y divide-[#1E293B]">
               {(stats?.lastOrders ?? []).map((o: any) => (
-                <div key={o.id} className="px-5 py-3 flex items-center justify-between">
+                <div key={o.id} className="px-5 py-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div>
                     <p className="text-sm text-[#F1F5F9] font-medium">{o.orderNumber}</p>
                     <p className="text-xs text-[#64748B]">{o.customer?.name ?? o.customer?.email ?? "Gast"}</p>
@@ -184,13 +184,13 @@ export default function AdminDashboard() {
 
           {/* Last Payments */}
           <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#1E293B] flex items-center justify-between">
+            <div className="px-5 py-4 border-b border-[#1E293B] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <h2 className="text-sm font-semibold text-[#F1F5F9]">Letzte Zahlungen</h2>
               <Link to="/admin/payments" className="text-xs text-[#6366F1] hover:underline">Alle →</Link>
             </div>
             <div className="divide-y divide-[#1E293B]">
               {(stats?.lastPayments ?? []).map((p: any) => (
-                <div key={p.id} className="px-5 py-3 flex items-center justify-between">
+                <div key={p.id} className="px-5 py-3 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div>
                     <p className="text-sm text-[#F1F5F9] font-medium capitalize">{p.provider}</p>
                     <p className="text-xs text-[#64748B]">{formatDate(p.createdAt)}</p>
@@ -207,7 +207,7 @@ export default function AdminDashboard() {
 
           {/* Last Registrations */}
           <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#1E293B] flex items-center justify-between">
+            <div className="px-5 py-4 border-b border-[#1E293B] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <h2 className="text-sm font-semibold text-[#F1F5F9]">Neue Registrierungen</h2>
               <Link to="/admin/users" className="text-xs text-[#6366F1] hover:underline">Alle →</Link>
             </div>
@@ -234,7 +234,7 @@ export default function AdminDashboard() {
           <h2 className="text-sm font-semibold text-[#F1F5F9] flex items-center gap-2 mb-4">
             <Server className="w-4 h-4 text-green-400" /> Systemstatus
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-xs text-[#64748B]">Status</p>
               <div className="flex items-center gap-2 mt-1">

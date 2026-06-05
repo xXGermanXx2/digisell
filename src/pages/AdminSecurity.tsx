@@ -107,7 +107,7 @@ export default function AdminSecurity() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="flex items-center gap-3">
             <Shield className="w-6 h-6 text-indigo-400" />
             <div>
@@ -118,7 +118,7 @@ export default function AdminSecurity() {
         </div>
 
         <Tabs defaultValue="blocklists">
-          <TabsList className="bg-[#111827] border border-[#1E293B]">
+          <TabsList className="bg-[#111827] border border-[#1E293B] flex-wrap h-auto gap-1 p-1">
             <TabsTrigger value="blocklists" className="data-[state=active]:bg-[#6366F1] data-[state=active]:text-white text-[#94A3B8]">
               Sperrlisten
             </TabsTrigger>
@@ -132,7 +132,7 @@ export default function AdminSecurity() {
 
           {/* ── Sperrlisten ── */}
           <TabsContent value="blocklists" className="space-y-4 mt-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="flex gap-3">
                 <div className="bg-[#111827] rounded-lg border border-[#1E293B] px-4 py-2 flex items-center gap-2">
                   <Monitor className="w-4 h-4 text-red-400" />
@@ -157,7 +157,7 @@ export default function AdminSecurity() {
                     <Plus className="w-4 h-4 mr-2" /> Eintrag hinzufügen
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-[#111827] border-[#1E293B] text-[#F1F5F9]">
+                <DialogContent className="w-[calc(100vw-1rem)] sm:w-full bg-[#111827] border-[#1E293B] text-[#F1F5F9]">
                   <DialogHeader>
                     <DialogTitle>Zur Sperrliste hinzufügen</DialogTitle>
                   </DialogHeader>
@@ -214,7 +214,7 @@ export default function AdminSecurity() {
 
             {/* Blocklist-Tabs */}
             <Tabs defaultValue="ip">
-              <TabsList className="bg-[#0F172A] border border-[#1E293B]">
+              <TabsList className="bg-[#0F172A] border border-[#1E293B] flex-wrap h-auto gap-1 p-1">
                 <TabsTrigger value="ip" className="data-[state=active]:bg-red-500/20 data-[state=active]:text-red-400 text-[#94A3B8]">
                   <Monitor className="w-3.5 h-3.5 mr-1" /> IP ({ipList.length})
                 </TabsTrigger>
@@ -291,7 +291,7 @@ export default function AdminSecurity() {
 
           {/* ── Wörter-Sperrliste ── */}
           <TabsContent value="banned-words" className="space-y-4 mt-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="flex gap-3">
                 <div className="bg-[#111827] rounded-lg border border-[#1E293B] px-4 py-2 flex items-center gap-2">
                   <Ban className="w-4 h-4 text-red-400" />
@@ -311,7 +311,7 @@ export default function AdminSecurity() {
                     <Plus className="w-4 h-4 mr-2" /> Sperrwort hinzufügen
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-[#111827] border-[#1E293B] text-[#F1F5F9]">
+                <DialogContent className="w-[calc(100vw-1rem)] sm:w-full bg-[#111827] border-[#1E293B] text-[#F1F5F9]">
                   <DialogHeader>
                     <DialogTitle>Neues Sperrwort hinzufügen</DialogTitle>
                   </DialogHeader>
@@ -536,7 +536,7 @@ export default function AdminSecurity() {
             </div>
 
             {loginLogs && loginLogs.total > 50 && (
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <p className="text-[#64748B] text-sm">{loginLogs.total} Einträge · Seite {loginPage} von {Math.ceil(loginLogs.total / 50)}</p>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => setLoginPage((p) => Math.max(1, p - 1))} disabled={loginPage === 1}

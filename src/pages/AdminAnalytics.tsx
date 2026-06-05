@@ -24,14 +24,14 @@ export default function AdminAnalytics() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="flex items-center gap-3">
             <TrendingUp className="w-6 h-6 text-indigo-400" />
             <h1 className="text-xl font-bold text-[#F1F5F9]">Analytics</h1>
           </div>
           <div className="flex items-center gap-3">
             <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="w-32 bg-[#0F172A] border-[#1E293B] text-[#F1F5F9]">
+              <SelectTrigger className="w-full sm:w-32 bg-[#0F172A] border-[#1E293B] text-[#F1F5F9]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-[#111827] border-[#1E293B]">
@@ -48,7 +48,7 @@ export default function AdminAnalytics() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: "Gesamtumsatz", value: `${Number(data?.totalRevenue ?? 0).toFixed(2)}€`, icon: DollarSign, color: "text-green-400" },
             { label: "Bestellungen", value: data?.totalOrders ?? 0, icon: ShoppingBag, color: "text-blue-400" },

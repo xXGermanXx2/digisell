@@ -96,7 +96,7 @@ export default function AdminDashboardV2() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
             <BarChart3 className="w-7 h-7 text-indigo-400" />
@@ -136,7 +136,7 @@ export default function AdminDashboardV2() {
 
       {/* Revenue Chart */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
           <h2 className="text-lg font-semibold text-white">Umsatz & Bestellungen</h2>
           <div className="flex gap-2">
             {[7, 14, 30, 90].map(d => (
@@ -166,7 +166,7 @@ export default function AdminDashboardV2() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Visitor Chart */}
         <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
             <h2 className="text-lg font-semibold text-white">Besucher & Conversion</h2>
             <div className="flex gap-2">
               {[7, 30, 90].map(d => (

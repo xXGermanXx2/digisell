@@ -270,7 +270,7 @@ export default function AdminTickets() {
 
         {/* Stats */}
         {stats && (
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {[
               { label: "Gesamt", value: stats.total, color: "text-white" },
               { label: "Offen", value: stats.open, color: "text-yellow-400" },
@@ -299,7 +299,7 @@ export default function AdminTickets() {
             />
           </div>
           <Select value={priorityFilter} onValueChange={v => { setPriorityFilter(v); setPage(1); }}>
-            <SelectTrigger className="w-36 bg-[#111827] border-[#2D3748] text-[#F1F5F9]">
+            <SelectTrigger className="w-full sm:w-36 bg-[#111827] border-[#2D3748] text-[#F1F5F9]">
               <SelectValue placeholder="Priorität" />
             </SelectTrigger>
             <SelectContent className="bg-[#1E293B] border-[#2D3748]">
@@ -310,7 +310,7 @@ export default function AdminTickets() {
             </SelectContent>
           </Select>
           <Select value={categoryFilter} onValueChange={v => { setCategoryFilter(v); setPage(1); }}>
-            <SelectTrigger className="w-36 bg-[#111827] border-[#2D3748] text-[#F1F5F9]">
+            <SelectTrigger className="w-full sm:w-36 bg-[#111827] border-[#2D3748] text-[#F1F5F9]">
               <SelectValue placeholder="Kategorie" />
             </SelectTrigger>
             <SelectContent className="bg-[#1E293B] border-[#2D3748]">
@@ -413,7 +413,7 @@ export default function AdminTickets() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <p className="text-sm text-[#64748B]">
               Seite {page} von {totalPages} · {ticketsData?.total ?? 0} Tickets
             </p>

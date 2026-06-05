@@ -23,7 +23,7 @@ export default function AdminSystem() {
         </div>
 
         {/* Health Status */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: "Status", value: health?.status ?? "—", icon: Activity, color: health?.status === "ok" ? "text-green-400" : "text-red-400" },
             { label: "Datenbank", value: health?.database ?? "—", icon: Database, color: health?.database === "connected" ? "text-green-400" : "text-red-400" },
@@ -57,7 +57,7 @@ export default function AdminSystem() {
 
         {/* System Logs */}
         <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
-          <div className="px-5 py-3 border-b border-[#1E293B] flex items-center justify-between">
+          <div className="px-5 py-3 border-b border-[#1E293B] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <h2 className="text-base font-semibold text-[#F1F5F9]">System-Logs</h2>
             <Badge className="bg-slate-800 text-slate-300">{logs?.items?.length ?? 0} Einträge</Badge>
           </div>

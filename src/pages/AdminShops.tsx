@@ -38,7 +38,7 @@ export default function AdminShops() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Store className="w-6 h-6 text-purple-400" /> Shopverwaltung
@@ -57,7 +57,7 @@ export default function AdminShops() {
                 className="pl-9 bg-gray-800 border-gray-700 text-white" />
             </div>
             <Select value={status} onValueChange={v => { setStatus(v); setPage(1); }}>
-              <SelectTrigger className="w-40 bg-gray-800 border-gray-700 text-white">
+              <SelectTrigger className="w-full sm:w-40 bg-gray-800 border-gray-700 text-white">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-700">
@@ -153,13 +153,13 @@ export default function AdminShops() {
 
       {/* Shop-Detail-Modal */}
       <Dialog open={!!selectedShop} onOpenChange={() => setSelectedShop(null)}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-full bg-gray-900 border-gray-800 text-white max-w-2xl">
           <DialogHeader>
             <DialogTitle>Shop-Details</DialogTitle>
           </DialogHeader>
           {shopDetail && (
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Card className="bg-gray-800 border-gray-700">
                   <CardContent className="pt-4 text-center">
                     <Package className="w-6 h-6 text-blue-400 mx-auto mb-1" />
@@ -182,7 +182,7 @@ export default function AdminShops() {
                   </CardContent>
                 </Card>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div><span className="text-gray-400">Name:</span> <span className="text-white ml-2">{shopDetail.shop.name}</span></div>
                 <div><span className="text-gray-400">Slug:</span> <span className="text-white ml-2">/{shopDetail.shop.slug}</span></div>
                 <div><span className="text-gray-400">Inhaber:</span> <span className="text-white ml-2">{(shopDetail.shop as any).owner?.name}</span></div>
