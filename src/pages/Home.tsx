@@ -5,6 +5,10 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
+import planFreeImg from "@/assets/plans/plan-free.png";
+import planPremiumImg from "@/assets/plans/plan-premium.png";
+import planBusinessImg from "@/assets/plans/plan-business.png";
+import planEnterpriseImg from "@/assets/plans/plan-enterprise.png";
 import {
   ArrowRight,
   Upload,
@@ -20,6 +24,7 @@ import {
   Zap,
   Globe,
   Loader2,
+  Check,
 } from "lucide-react";
 
 const categoryIcons: Record<string, React.ReactNode> = {
@@ -30,6 +35,90 @@ const categoryIcons: Record<string, React.ReactNode> = {
   lizenzen: <Key className="w-6 h-6" />,
   plugins: <Plug className="w-6 h-6" />,
 };
+
+const PLANS = [
+  {
+    key: "free",
+    img: planFreeImg,
+    name: "Free",
+    price: "0",
+    period: "/ Monat",
+    borderColor: "border-[#2D3748]",
+    badge: null as string | null,
+    highlight: false,
+    features: [
+      "1 Shop",
+      "10 Produkte",
+      "500 MB Speicher",
+      "Basis-Analytics",
+      "Community-Support",
+    ],
+    cta: "Kostenlos starten",
+    ctaStyle: "bg-[#1E293B] hover:bg-[#2D3748] text-[#F1F5F9] border border-[#2D3748]",
+  },
+  {
+    key: "premium",
+    img: planPremiumImg,
+    name: "Premium",
+    price: "19",
+    period: "/ Monat",
+    borderColor: "border-[#6366F1]",
+    badge: "Beliebt",
+    highlight: true,
+    features: [
+      "5 Shops",
+      "100 Produkte",
+      "5 GB Speicher",
+      "Erweiterte Analytics",
+      "Prioritäts-Support",
+      "Affiliate-Programm",
+    ],
+    cta: "Premium starten",
+    ctaStyle: "bg-[#6366F1] hover:bg-[#4F46E5] text-white",
+  },
+  {
+    key: "business",
+    img: planBusinessImg,
+    name: "Business",
+    price: "49",
+    period: "/ Monat",
+    borderColor: "border-[#F59E0B]",
+    badge: null as string | null,
+    highlight: false,
+    features: [
+      "20 Shops",
+      "500 Produkte",
+      "20 GB Speicher",
+      "Vollständige Analytics",
+      "Dedizierter Support",
+      "API-Zugang",
+      "Webhook-Integration",
+    ],
+    cta: "Business starten",
+    ctaStyle: "bg-[#F59E0B] hover:bg-[#D97706] text-[#0F172A] font-semibold",
+  },
+  {
+    key: "enterprise",
+    img: planEnterpriseImg,
+    name: "Enterprise",
+    price: "Auf Anfrage",
+    period: "",
+    borderColor: "border-[#06B6D4]",
+    badge: null as string | null,
+    highlight: false,
+    features: [
+      "Unbegrenzte Shops",
+      "Unbegrenzte Produkte",
+      "Unbegrenzter Speicher",
+      "Custom Analytics",
+      "24/7 Premium-Support",
+      "SLA-Garantie",
+      "White-Label-Option",
+    ],
+    cta: "Kontakt aufnehmen",
+    ctaStyle: "bg-[#06B6D4]/10 hover:bg-[#06B6D4]/20 text-[#06B6D4] border border-[#06B6D4]/30",
+  },
+];
 
 export default function Home() {
   const [searchParams] = useSearchParams();
@@ -46,7 +135,6 @@ export default function Home() {
   });
   const { data: featuredProducts } = trpc.product.getFeatured.useQuery();
 
-  // Map category slug to id
   useEffect(() => {
     if (categoryFilter && categories) {
       const cat = categories.find((c) => c.slug === categoryFilter);
@@ -62,12 +150,10 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative pt-[72px] min-h-[60vh] flex items-center overflow-hidden">
-        {/* Background Effect */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-1/4 -left-32 w-96 h-96 bg-[#6366F1]/5 rounded-full blur-3xl" />
           <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-[#8B5CF6]/5 rounded-full blur-3xl" />
         </div>
-
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-24">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#6366F1]/10 border border-[#6366F1]/20 text-[#6366F1] text-xs font-medium mb-6">
@@ -110,7 +196,7 @@ export default function Home() {
             {[
               { value: "500+", label: "Verkäufer" },
               { value: "50K+", label: "Produkte" },
-              { value: "\u20ac2M+", label: "Umsatz" },
+              { value: "€2M+", label: "Umsatz" },
               { value: "99.9%", label: "Uptime" },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
@@ -170,7 +256,6 @@ export default function Home() {
               </Link>
             )}
           </div>
-
           {productsLoading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 text-[#6366F1] animate-spin" />
@@ -225,8 +310,90 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section id="pricing" className="py-16 md:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <span className="inline-block px-3 py-1 text-xs font-semibold text-[#6366F1] bg-[#6366F1]/10 rounded-full border border-[#6366F1]/20 mb-4">
+              Preise
+            </span>
+            <h2 className="text-2xl md:text-3xl font-bold text-[#F1F5F9] mb-3">
+              Der richtige Plan für jeden
+            </h2>
+            <p className="text-[#94A3B8] max-w-xl mx-auto text-sm">
+              Starte kostenlos und wachse mit deinem Business. Kein Risiko, jederzeit kündbar.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+            {PLANS.map((plan) => (
+              <div
+                key={plan.key}
+                className={`relative rounded-2xl border ${
+                  plan.highlight
+                    ? "border-[#6366F1] shadow-xl shadow-[#6366F1]/20 lg:-translate-y-2"
+                    : plan.borderColor
+                } bg-[#0F172A] overflow-hidden flex flex-col transition-all duration-200 hover:-translate-y-1 hover:shadow-lg`}
+              >
+                {plan.badge && (
+                  <div className="absolute top-3 right-3 z-10">
+                    <span className="px-2.5 py-1 text-xs font-bold bg-[#6366F1] text-white rounded-full shadow">
+                      {plan.badge}
+                    </span>
+                  </div>
+                )}
+
+                {/* Plan-Bild */}
+                <div className="h-36 overflow-hidden shrink-0">
+                  <img
+                    src={plan.img}
+                    alt={`${plan.name} Plan`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                <div className="p-5 flex flex-col flex-1">
+                  <h3 className="text-lg font-bold text-[#F1F5F9] mb-1">{plan.name}</h3>
+                  <div className="flex items-baseline gap-1 mb-5">
+                    {plan.price === "Auf Anfrage" ? (
+                      <span className="text-xl font-bold text-[#F1F5F9]">Auf Anfrage</span>
+                    ) : (
+                      <>
+                        <span className="text-3xl font-bold text-[#F1F5F9]">
+                          {plan.price === "0" ? "Kostenlos" : `€${plan.price}`}
+                        </span>
+                        {plan.period && (
+                          <span className="text-sm text-[#64748B]">{plan.period}</span>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  <ul className="space-y-2.5 mb-6 flex-1">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-center gap-2 text-sm text-[#94A3B8]">
+                        <Check className="w-4 h-4 text-green-400 shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Link to="/register">
+                    <button
+                      className={`w-full py-2.5 px-4 rounded-xl text-sm font-medium transition-colors ${plan.ctaStyle}`}
+                    >
+                      {plan.cta}
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Trust Section */}
-      <section className="py-12 md:py-16">
+      <section className="py-12 md:py-16 bg-[#111827]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
@@ -234,7 +401,7 @@ export default function Home() {
               { icon: <Zap className="w-5 h-5" />, title: "Sofortige Lieferung", desc: "Automatischer Download nach Kauf" },
               { icon: <Globe className="w-5 h-5" />, title: "Weltweit verfügbar", desc: "Verkaufe in über 135 Ländern" },
             ].map((item) => (
-              <div key={item.title} className="flex items-start gap-4 p-5 rounded-xl bg-[#111827] card-shadow">
+              <div key={item.title} className="flex items-start gap-4 p-5 rounded-xl bg-[#0F172A] card-shadow">
                 <div className="w-10 h-10 rounded-lg bg-[#6366F1]/10 flex items-center justify-center text-[#6366F1] shrink-0">
                   {item.icon}
                 </div>
