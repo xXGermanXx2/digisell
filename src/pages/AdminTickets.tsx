@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/providers/trpc";
+import { useAuth } from "@/hooks/useAuth";
 import AdminLayout from "@/components/AdminLayout";
 import {
   Select,
@@ -13,9 +14,21 @@ import {
   Ticket,
   Search,
   RefreshCw,
-  ChevronRight,
+  Send,
+  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
+
+function formatDateTime(value: string | Date | null | undefined) {
+  if (!value) return "-";
+  return new Date(value).toLocaleString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export default function AdminTickets() {
   const [statusFilter, setStatusFilter] = useState("all");
@@ -23,6 +36,10 @@ export default function AdminTickets() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [replyMessage, setReplyMessage] = useState("");
+  const [internalNote, setInternalNote] = useState(false);
+  const { user } = useAuth({ redirectOnUnauthenticated: true });
   const utils = trpc.useUtils();
 
   const { data: ticketsData, isLoading, refetch } = trpc.ticket.list.useQuery({
@@ -35,6 +52,23 @@ export default function AdminTickets() {
   });
 
   const { data: stats } = trpc.ticket.stats.useQuery();
+
+  const ticketDetail = trpc.ticket.getById.useQuery(
+    { id: selectedTicket?.id ?? 0 },
+    { enabled: !!selectedTicket }
+  );
+
+  const addMessage = trpc.ticket.addMessage.useMutation({
+    onSuccess: () => {
+      setReplyMessage("");
+      setInternalNote(false);
+      utils.ticket.getById.invalidate({ id: selectedTicket?.id });
+      utils.ticket.list.invalidate();
+      utils.ticket.stats.invalidate();
+      toast.success("Antwort gesendet");
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   const updateStatus = trpc.ticket.updateStatus.useMutation({
     onSuccess: () => {
@@ -52,6 +86,20 @@ export default function AdminTickets() {
 
   const totalPages = ticketsData ? Math.ceil(ticketsData.total / 20) : 1;
 
+  const statusLabels: Record<string, string> = {
+    open: "Offen",
+    in_progress: "In Bearbeitung",
+    resolved: "Gelöst",
+    closed: "Geschlossen",
+  };
+
+  const statusBadgeClass: Record<string, string> = {
+    open: "bg-[#22C55E]/10 text-[#22C55E]",
+    in_progress: "bg-[#3B82F6]/10 text-[#3B82F6]",
+    resolved: "bg-[#6366F1]/10 text-[#6366F1]",
+    closed: "bg-[#64748B]/10 text-[#64748B]",
+  };
+
   const categoryColors: Record<string, string> = {
     general: "#6366F1",
     technical: "#F59E0B",
@@ -65,6 +113,138 @@ export default function AdminTickets() {
     billing: "Abrechnung",
     refund: "R\u00fcckerstattung",
   };
+
+  if (selectedTicket) {
+    const ticket = ticketDetail.data;
+
+    return (
+      <AdminLayout>
+        <div className="space-y-6 animate-fade-in">
+          <button
+            onClick={() => {
+              setSelectedTicket(null);
+              setReplyMessage("");
+              setInternalNote(false);
+            }}
+            className="inline-flex items-center gap-2 text-sm text-[#94A3B8] hover:text-[#F1F5F9] transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Zurück zu allen Tickets
+          </button>
+
+          {ticketDetail.isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 text-[#6366F1] animate-spin" />
+            </div>
+          ) : ticket ? (
+            <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden card-shadow">
+              <div className="px-6 py-5 border-b border-[#1E293B] flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-mono text-[#64748B]">{ticket.ticketNumber}</span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${statusBadgeClass[ticket.status] ?? statusBadgeClass.open}`}>
+                      {statusLabels[ticket.status] ?? ticket.status}
+                    </span>
+                  </div>
+                  <h1 className="text-xl font-semibold text-[#F1F5F9]">{ticket.subject}</h1>
+                  <p className="text-sm text-[#94A3B8] mt-1">
+                    {ticket.customerEmail} · {categoryLabels[ticket.category] ?? ticket.category} · {formatDateTime(ticket.createdAt)}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select
+                    value={ticket.status}
+                    onValueChange={(v) => updateStatus.mutate({ ticketId: ticket.id, status: v as any })}
+                  >
+                    <SelectTrigger className="h-9 w-40 bg-[#1A2235] border-[#2D3748] text-[#F1F5F9] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#1E293B] border-[#2D3748]">
+                      <SelectItem value="open" className="text-[#F1F5F9] text-xs">Offen</SelectItem>
+                      <SelectItem value="in_progress" className="text-[#F1F5F9] text-xs">In Bearbeitung</SelectItem>
+                      <SelectItem value="resolved" className="text-[#F1F5F9] text-xs">Gelöst</SelectItem>
+                      <SelectItem value="closed" className="text-[#F1F5F9] text-xs">Geschlossen</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4 max-h-[520px] overflow-y-auto">
+                {ticket.messages?.map((message: any) => {
+                  const fromAdmin = message.senderRole === "admin" || message.senderRole === "seller";
+                  return (
+                    <div key={message.id} className={`flex gap-3 ${fromAdmin ? "flex-row-reverse" : ""}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                        fromAdmin ? "bg-[#6366F1]/20 text-[#818CF8]" : "bg-[#2D3748] text-[#94A3B8]"
+                      }`}>
+                        {fromAdmin ? "A" : "K"}
+                      </div>
+                      <div className={`max-w-[78%] flex flex-col gap-1 ${fromAdmin ? "items-end" : "items-start"}`}>
+                        <div className={`rounded-xl px-4 py-3 text-sm whitespace-pre-wrap ${
+                          fromAdmin ? "bg-[#6366F1] text-white" : "bg-[#1A2235] text-[#F1F5F9] border border-[#2D3748]"
+                        }`}>
+                          {message.isInternal && (
+                            <span className="block text-[10px] uppercase tracking-wide text-yellow-200 mb-1">Interne Notiz</span>
+                          )}
+                          {message.message}
+                        </div>
+                        <span className="text-xs text-[#64748B]">
+                          {message.senderName} · {formatDateTime(message.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {ticket.status !== "closed" ? (
+                <div className="px-6 pb-6 border-t border-[#1E293B] pt-5 space-y-3">
+                  <textarea
+                    placeholder="Antwort an den Kunden schreiben..."
+                    value={replyMessage}
+                    onChange={(e) => setReplyMessage(e.target.value)}
+                    className="w-full bg-[#1A2235] border border-[#2D3748] text-[#F1F5F9] placeholder:text-[#64748B] rounded-lg px-4 py-3 text-sm resize-none min-h-[110px] focus:outline-none focus:ring-2 focus:ring-[#6366F1]"
+                  />
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <label className="inline-flex items-center gap-2 text-xs text-[#94A3B8]">
+                      <input
+                        type="checkbox"
+                        checked={internalNote}
+                        onChange={(e) => setInternalNote(e.target.checked)}
+                        className="accent-[#6366F1]"
+                      />
+                      Als interne Notiz speichern
+                    </label>
+                    <button
+                      onClick={() => addMessage.mutate({
+                        ticketId: ticket.id,
+                        message: replyMessage,
+                        senderName: user?.name ?? user?.email ?? "Admin",
+                        senderRole: "admin",
+                        senderId: user?.id,
+                        isInternal: internalNote,
+                        attachments: [],
+                      })}
+                      disabled={!replyMessage.trim() || addMessage.isPending}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm bg-[#6366F1] hover:bg-[#4F46E5] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                    >
+                      {addMessage.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      Antwort senden
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="px-6 py-5 border-t border-[#1E293B] text-sm text-[#94A3B8]">
+                  Dieses Ticket ist geschlossen. Ändere den Status auf „Offen“ oder „In Bearbeitung“, um erneut zu antworten.
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-[#111827] rounded-xl p-8 text-center text-sm text-[#94A3B8]">Ticket konnte nicht geladen werden.</div>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -154,7 +334,7 @@ export default function AdminTickets() {
           ) : (
             <div className="divide-y divide-[#1E293B]">
               {ticketsData?.items?.map((ticket) => (
-                <div key={ticket.id} className="p-6 hover:bg-[#1A2235]/30 transition-colors">
+                <div key={ticket.id} className="p-6 hover:bg-[#1A2235]/30 transition-colors cursor-pointer" onClick={() => setSelectedTicket(ticket)}>
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
@@ -193,6 +373,16 @@ export default function AdminTickets() {
                          ticket.status === "in_progress" ? "In Bearbeitung" :
                          ticket.status === "resolved" ? "Gel\u00f6st" : "Geschlossen"}
                       </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTicket(ticket);
+                        }}
+                        className="px-3 py-1.5 text-xs bg-[#6366F1] hover:bg-[#4F46E5] text-white rounded-lg transition-colors"
+                      >
+                        Antworten
+                      </button>
                       <Select
                         value={ticket.status}
                         onValueChange={(v) => updateStatus.mutate({ ticketId: ticket.id, status: v as any })}
