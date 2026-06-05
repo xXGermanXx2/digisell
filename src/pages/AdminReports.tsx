@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/providers/trpc";
+import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,7 +28,8 @@ export default function AdminReports() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <AdminLayout>
+      <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <Flag className="w-6 h-6 text-red-400" /> Meldungen & Moderation
@@ -124,6 +126,7 @@ export default function AdminReports() {
           <Button variant="outline" size="sm" disabled={page >= Math.ceil(data.total / 20)} onClick={() => setPage(p => p + 1)} className="border-gray-700 text-gray-300">Weiter</Button>
         </div>
       )}
-    </div>
+      </div>
+    </AdminLayout>
   );
 }

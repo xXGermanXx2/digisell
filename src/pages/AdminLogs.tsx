@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import AdminLayout from "@/components/AdminLayout";
 import { Search, Loader2, AlertTriangle, Info, CheckCircle, XCircle, FileText } from "lucide-react";
 
 const levelColors: Record<string, string> = {
@@ -37,7 +38,8 @@ export default function AdminLogs() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 p-6">
+    <AdminLayout>
+      <div className="space-y-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <FileText className="w-6 h-6 text-indigo-400" />
@@ -124,6 +126,7 @@ export default function AdminLogs() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }

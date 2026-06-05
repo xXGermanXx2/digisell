@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/providers/trpc";
+import AdminLayout from "@/components/AdminLayout";
 import {
   CreditCard, Search, Filter, RefreshCw, CheckCircle,
   XCircle, Clock, AlertCircle, TrendingUp, DollarSign
@@ -45,7 +46,8 @@ export default function AdminPaymentLogs() {
   const totalPages = data ? Math.ceil(data.total / 25) : 1;
 
   return (
-    <div className="p-6 space-y-6">
+    <AdminLayout>
+      <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
@@ -192,6 +194,7 @@ export default function AdminPaymentLogs() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </AdminLayout>
   );
 }
