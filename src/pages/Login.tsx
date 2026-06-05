@@ -30,7 +30,12 @@ export default function Login() {
   const [error, setError] = useState("");
   const [mode, setMode] = useState<"oauth" | "email">("email");
 
-  useEffect(() => { if (user) navigate("/dashboard"); }, [user, navigate]);
+  useEffect(() => {
+    if (user) {
+      if (user.role === "admin") navigate("/admin");
+      else navigate("/seller");
+    }
+  }, [user, navigate]);
 
   const utils = trpc.useUtils();
 
@@ -38,9 +43,10 @@ export default function Login() {
     onSuccess: (data: any) => {
       if (data.requiresTwoFactor) { setRequires2FA(true); setError(""); return; }
       if (data.refreshToken) localStorage.setItem("ds_refresh_token", data.refreshToken);
-      // Cache leeren und dann zum Dashboard navigieren
+      // Cache leeren und dann rollenbasiert weiterleiten
       utils.auth.me.reset();
-      navigate("/dashboard");
+      if (data.role === "admin") navigate("/admin");
+      else navigate("/seller");
     },
     onError: (e: any) => setError(e.message),
   });

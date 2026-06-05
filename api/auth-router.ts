@@ -136,7 +136,7 @@ export const authRouter = createRouter({
 
       const { refreshToken } = await issueSession(ctx, user.id, user.unionId!);
 
-      return { success: true, requiresTwoFactor: false, refreshToken };
+      return { success: true, requiresTwoFactor: false, refreshToken, role: user.role };
     }),
 
   // ── logout ──
