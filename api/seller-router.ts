@@ -190,30 +190,45 @@ export const sellerRouter = createRouter({
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
 
-    const [myProducts, myOrders, myRevenue, myMonthRevenue, myCustomers] = await Promise.all([
-      db.select({ count: sql<number>`count(*)` }).from(products).where(eq(products.sellerId, ctx.user.id)),
-      db.select({ count: sql<number>`count(*)` }).from(orders).where(eq(orders.sellerId, ctx.user.id)),
-      db
-        .select({ sum: sql<string>`coalesce(sum(total), 0)` })
-        .from(orders)
-        .where(and(eq(orders.sellerId, ctx.user.id), eq(orders.status, "completed"))),
-      db
-        .select({ sum: sql<string>`coalesce(sum(total), 0)` })
-        .from(orders)
-        .where(and(eq(orders.sellerId, ctx.user.id), eq(orders.status, "completed"), gte(orders.createdAt, monthStart))),
-      db
-        .select({ count: sql<number>`count(distinct customer_id)` })
-        .from(orders)
-        .where(and(eq(orders.sellerId, ctx.user.id), ne(orders.customerId, 0))),
-    ]);
+    // Robuster Fallback falls seller_id Spalte noch nicht migriert wurde
+    let productCount = 0, orderCount = 0, revenueTotal = 0, revenueMonth = 0, customerCount = 0;
+    try {
+      const [myProducts, myOrders, myRevenue, myMonthRevenue, myCustomers] = await Promise.all([
+        db.select({ count: sql<number>`count(*)` }).from(products).where(eq(products.sellerId, ctx.user.id)),
+        db.select({ count: sql<number>`count(*)` }).from(orders).where(eq(orders.sellerId, ctx.user.id)),
+        db
+          .select({ sum: sql<string>`coalesce(sum(total), 0)` })
+          .from(orders)
+          .where(and(eq(orders.sellerId, ctx.user.id), eq(orders.status, "completed"))),
+        db
+          .select({ sum: sql<string>`coalesce(sum(total), 0)` })
+          .from(orders)
+          .where(and(eq(orders.sellerId, ctx.user.id), eq(orders.status, "completed"), gte(orders.createdAt, monthStart))),
+        db
+          .select({ count: sql<number>`count(distinct customer_id)` })
+          .from(orders)
+          .where(and(eq(orders.sellerId, ctx.user.id), ne(orders.customerId, 0))),
+      ]);
+      productCount = Number(myProducts[0]?.count ?? 0);
+      orderCount = Number(myOrders[0]?.count ?? 0);
+      revenueTotal = Number(myRevenue[0]?.sum ?? 0);
+      revenueMonth = Number(myMonthRevenue[0]?.sum ?? 0);
+      customerCount = Number(myCustomers[0]?.count ?? 0);
+    } catch {
+      // Fallback: seller_id Spalte fehlt noch - zähle nur Produkte
+      try {
+        const [myProducts] = await db.select({ count: sql<number>`count(*)` }).from(products).where(eq(products.sellerId, ctx.user.id));
+        productCount = Number(myProducts?.count ?? 0);
+      } catch { /* ignore */ }
+    }
 
     return {
       shop,
-      products: Number(myProducts[0]?.count ?? 0),
-      orders: Number(myOrders[0]?.count ?? 0),
-      revenueTotal: Number(myRevenue[0]?.sum ?? 0),
-      revenueMonth: Number(myMonthRevenue[0]?.sum ?? 0),
-      customers: Number(myCustomers[0]?.count ?? 0),
+      products: productCount,
+      orders: orderCount,
+      revenueTotal,
+      revenueMonth,
+      customers: customerCount,
     };
   }),
 

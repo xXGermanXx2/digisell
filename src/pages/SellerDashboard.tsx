@@ -361,14 +361,14 @@ function OverviewTab() {
 
 // ── Shop Tab ──────────────────────────────────────────────────────────────────
 function ShopTab() {
-  const { data: shop, refetch } = trpc.seller.getMyShop.useQuery();
+  const { data: shop, refetch, isLoading: shopLoading } = trpc.seller.getMyShop.useQuery();
   const updateShop = trpc.seller.updateMyShop.useMutation({ onSuccess: () => refetch() });
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [logo, setLogo] = useState("");
   const [banner, setBanner] = useState("");
-
+  if (shopLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-indigo-400" /></div>;
   if (!shop) return <NoShopPrompt />;
 
   const startEdit = () => {
@@ -1007,22 +1007,49 @@ function SettingsTab() {
 }
 
 // ── Sidebar Plan Badge ────────────────────────────────────────────────────────
+function PlanProgressBar({ current, limit, label, color }: { current: number; limit: number; label: string; color: string }) {
+  const isUnlimited = limit === -1;
+  const pct = isUnlimited ? 0 : Math.min(100, Math.round((current / limit) * 100));
+  const isWarning = !isUnlimited && pct >= 80;
+  const barColor = isUnlimited ? "bg-indigo-500" : isWarning ? (pct >= 100 ? "bg-red-500" : "bg-amber-500") : color;
+  const [displayPct, setDisplayPct] = useState(0);
+  useEffect(() => {
+    const timer = setTimeout(() => setDisplayPct(pct), 100);
+    return () => clearTimeout(timer);
+  }, [pct]);
+  return (
+    <div className="mt-2">
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-xs text-gray-400">{label}</span>
+        <span className="text-xs font-medium text-gray-300">{current}/{isUnlimited ? "∞" : limit}</span>
+      </div>
+      <div className="w-full h-1.5 bg-[#0D1526] rounded-full overflow-hidden">
+        {isUnlimited ? (
+          <div className="h-full w-full bg-indigo-500/30 rounded-full" />
+        ) : (
+          <div
+            className={`h-full rounded-full transition-all duration-700 ease-out ${barColor}`}
+            style={{ width: `${displayPct}%` }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SidebarPlanBadge() {
   const { data: plan } = trpc.subscription.getMyPlan.useQuery();
   if (!plan) return null;
   return (
-    <div className="px-3 py-2 mb-1 rounded-lg bg-[#1A2235] border border-[#2D3748]">
-      <div className="flex items-center justify-between">
+    <div className="px-3 py-3 mb-1 rounded-lg bg-[#1A2235] border border-[#2D3748]">
+      <div className="flex items-center justify-between mb-1">
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${PLAN_COLORS[plan.plan] ?? PLAN_COLORS.free}`}>
           {PLAN_LABELS[plan.plan] ?? plan.plan}
         </span>
         {plan.isLifetimePremium && <span className="text-xs text-amber-400">★ Lifetime</span>}
       </div>
-      <p className="text-xs text-gray-500 mt-1">
-        {plan.currentShops}/{plan.shopLimit === -1 ? "∞" : plan.shopLimit} Shops
-        {" · "}
-        {plan.currentProducts}/{plan.productLimit === -1 ? "∞" : plan.productLimit} Produkte
-      </p>
+      <PlanProgressBar current={plan.currentShops} limit={plan.shopLimit} label="Shops" color="bg-indigo-500" />
+      <PlanProgressBar current={plan.currentProducts} limit={plan.productLimit} label="Produkte" color="bg-violet-500" />
     </div>
   );
 }
