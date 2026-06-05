@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { eq, like, or, desc, sql, and, gte, lte, ne, inArray } from "drizzle-orm";
 import { createRouter, adminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
@@ -1705,13 +1706,27 @@ export const adminRouter = createRouter({
       const normalizedWord = input.word.trim().toLocaleLowerCase("de-DE");
       if (!normalizedWord) throw new Error("Bitte gib ein gültiges Sperrwort ein.");
 
-      await db.insert(bannedWords).values({
-        word: normalizedWord,
-        matchMode: input.matchMode,
-        reason: input.reason,
-        isActive: input.isActive,
-        createdBy: ctx.user.id,
-      });
+      try {
+        await db.insert(bannedWords).values({
+          word: normalizedWord,
+          matchMode: input.matchMode,
+          reason: input.reason,
+          isActive: input.isActive,
+          createdBy: ctx.user.id,
+        });
+      } catch (error: any) {
+        if (error?.code === "ER_DUP_ENTRY" || error?.cause?.code === "ER_DUP_ENTRY") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Dieses Sperrwort existiert bereits.",
+          });
+        }
+
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Das Sperrwort konnte nicht gespeichert werden. Bitte versuche es nach dem Deployment erneut.",
+        });
+      }
 
       await db.insert(systemLogs).values({
         level: "warn", category: "admin",

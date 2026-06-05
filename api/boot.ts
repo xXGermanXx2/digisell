@@ -12,6 +12,34 @@ import { sql } from "drizzle-orm";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
+async function ensureOperationalTables(): Promise<string[]> {
+  const db = getDb();
+  const results: string[] = [];
+
+  try {
+    await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS \`blocklists\` (\`id\` SERIAL PRIMARY KEY, \`type\` ENUM('ip','email','domain') NOT NULL, \`value\` VARCHAR(255) NOT NULL, \`reason\` TEXT, \`created_by\` BIGINT UNSIGNED, \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY \`blocklist_unique\` (\`type\`, \`value\`))`));
+    results.push("OK: blocklists table");
+  } catch (e: any) {
+    results.push(`ERROR blocklists: ${e.message?.substring(0, 100)}`);
+  }
+
+  try {
+    await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS \`banned_words\` (\`id\` SERIAL PRIMARY KEY, \`word\` VARCHAR(255) NOT NULL, \`match_mode\` ENUM('exact','contains') NOT NULL DEFAULT 'contains', \`is_active\` BOOLEAN NOT NULL DEFAULT TRUE, \`reason\` TEXT, \`created_by\` BIGINT UNSIGNED NULL, \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, UNIQUE KEY \`banned_words_word_idx\` (\`word\`), KEY \`banned_words_active_idx\` (\`is_active\`))`));
+    results.push("OK: banned_words table");
+  } catch (e: any) {
+    results.push(`ERROR banned_words: ${e.message?.substring(0, 100)}`);
+  }
+
+  try {
+    await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS \`user_warnings\` (\`id\` SERIAL PRIMARY KEY, \`user_id\` BIGINT UNSIGNED NOT NULL, \`admin_id\` BIGINT UNSIGNED NULL, \`subject\` VARCHAR(255) NOT NULL, \`message\` TEXT NOT NULL, \`reason\` TEXT NOT NULL, \`is_dismissed\` BOOLEAN NOT NULL DEFAULT FALSE, \`dismissed_at\` TIMESTAMP NULL, \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, KEY \`user_warnings_user_idx\` (\`user_id\`), KEY \`user_warnings_admin_idx\` (\`admin_id\`), KEY \`user_warnings_dismissed_idx\` (\`user_id\`, \`is_dismissed\`), KEY \`user_warnings_created_idx\` (\`created_at\`))`));
+    results.push("OK: user_warnings table");
+  } catch (e: any) {
+    results.push(`ERROR user_warnings: ${e.message?.substring(0, 100)}`);
+  }
+
+  return results;
+}
+
 app.use(bodyLimit({ maxSize: 50 * 1024 * 1024 }));
 app.get(Paths.oauthCallback, createOAuthCallbackHandler());
 app.use("/api/trpc/*", async (c) => {
@@ -72,17 +100,7 @@ app.get("/api/run-migration", async (c) => {
       catch (e: any) { results.push(`ERROR: orders.${col}: ${e.message?.substring(0, 80)}`); }
     }
 
-    // blocklists-Tabelle erstellen
-    try {
-      await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS \`blocklists\` (\`id\` SERIAL PRIMARY KEY, \`type\` ENUM('ip','email','domain') NOT NULL, \`value\` VARCHAR(255) NOT NULL, \`reason\` TEXT, \`created_by\` BIGINT UNSIGNED, \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY \`blocklist_unique\` (\`type\`, \`value\`))`));
-      results.push("OK: blocklists table");
-    } catch (e: any) { results.push(`SKIP blocklists: ${e.message?.substring(0, 60)}`); }
-
-    // banned_words-Tabelle für administrativ verwaltbare Shop-/Produkt-Sperrwörter erstellen
-    try {
-      await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS \`banned_words\` (\`id\` SERIAL PRIMARY KEY, \`word\` VARCHAR(255) NOT NULL, \`match_mode\` ENUM('exact','contains') NOT NULL DEFAULT 'contains', \`is_active\` BOOLEAN NOT NULL DEFAULT TRUE, \`reason\` TEXT, \`created_by\` BIGINT UNSIGNED, \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, \`updated_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, UNIQUE KEY \`banned_words_word_idx\` (\`word\`), KEY \`banned_words_active_idx\` (\`is_active\`))`));
-      results.push("OK: banned_words table");
-    } catch (e: any) { results.push(`SKIP banned_words: ${e.message?.substring(0, 60)}`); }
+    results.push(...await ensureOperationalTables());
 
     return c.json({ success: true, results });
   } catch (e: any) {
@@ -97,6 +115,8 @@ export default app;
 if (env.isProduction) {
   const { serve } = await import("@hono/node-server");
   const { serveStaticFiles } = await import("./lib/vite");
+  const operationalTableResults = await ensureOperationalTables();
+  console.log(`Operational table check: ${operationalTableResults.join("; ")}`);
   serveStaticFiles(app);
 
   const port = parseInt(process.env.PORT || "3000");
