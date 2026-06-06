@@ -35,6 +35,19 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   AlertTriangle,
+  Heart,
+  Bell,
+  Gift,
+  CalendarDays,
+  Monitor,
+  Smartphone,
+  Trash2,
+  Paperclip,
+  FileUp,
+  RefreshCw,
+  Tag,
+  Mail,
+  Megaphone,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,6 +59,10 @@ const navItems = [
   { id: "tickets", label: "Support", icon: Ticket },
   { id: "payments", label: "Zahlungen", icon: CreditCard },
   { id: "credits", label: "Mein Guthaben", icon: Coins },
+  { id: "favorites", label: "Favoriten", icon: Heart },
+  { id: "notifications", label: "Benachrichtigungen", icon: Bell },
+  { id: "coupons", label: "Coupons", icon: Gift },
+  { id: "subscriptions", label: "Abonnements", icon: CalendarDays },
   { id: "security", label: "Sicherheit", icon: Shield },
   { id: "settings", label: "Einstellungen", icon: Settings },
 ];
@@ -500,6 +517,7 @@ function TicketsTab({ ticketData, user }: any) {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [messageAttachments, setMessageAttachments] = useState<{ name: string; url: string; size: number }[]>([]);
   const [form, setForm] = useState({
     subject: "",
     category: "general" as "general" | "technical" | "billing" | "refund",
@@ -525,6 +543,7 @@ function TicketsTab({ ticketData, user }: any) {
   const addMessage = trpc.ticket.addMessage.useMutation({
     onSuccess: () => {
       setNewMessage("");
+      setMessageAttachments([]);
       utils.ticket.getById.invalidate({ id: selectedTicket?.id });
     },
     onError: (e) => toast.error(e.message),
@@ -580,13 +599,45 @@ function TicketsTab({ ticketData, user }: any) {
                     }`}>
                       {msg.message}
                     </div>
+                    {msg.attachments?.length > 0 && (
+                      <div className="space-y-1">
+                        {msg.attachments.map((file: any, idx: number) => (
+                          <a key={`${msg.id}-${idx}`} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-indigo-300 hover:text-indigo-200">
+                            <Paperclip className="w-3 h-3" /> {file.name} {file.size ? `(${Math.ceil(file.size / 1024)} KB)` : ""}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                     <span className="text-xs text-[#64748B]">{formatDateTime(msg.createdAt)}</span>
                   </div>
                 </div>
               ))}
             </div>
             {t.status !== "closed" && (
-              <div className="px-5 pb-5 flex gap-2">
+              <div className="px-5 pb-5 space-y-3">
+                <div className="rounded-lg border border-dashed border-[#2D3748] bg-[#0A0E1A] p-3">
+                  <label className="flex cursor-pointer items-center gap-2 text-xs text-[#94A3B8] hover:text-[#F1F5F9]">
+                    <FileUp className="w-4 h-4" /> Datei an Antwort anhängen
+                    <input type="file" className="hidden" multiple onChange={(e) => {
+                      const files = Array.from(e.target.files ?? []);
+                      const next = files.map((file) => ({ name: file.name, size: file.size, url: URL.createObjectURL(file) }));
+                      setMessageAttachments((prev) => [...prev, ...next]);
+                      if (next.length) toast.success(`${next.length} Datei(en) angehängt`);
+                      e.currentTarget.value = "";
+                    }} />
+                  </label>
+                  {messageAttachments.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {messageAttachments.map((file, idx) => (
+                        <span key={`${file.name}-${idx}`} className="inline-flex items-center gap-1 rounded-full border border-[#2D3748] px-2 py-1 text-xs text-[#CBD5E1]">
+                          <Paperclip className="w-3 h-3" /> {file.name}
+                          <button type="button" onClick={() => setMessageAttachments((prev) => prev.filter((_, i) => i !== idx))} className="text-[#64748B] hover:text-red-300"><X className="w-3 h-3" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2">
                 <Textarea
                   placeholder="Antwort schreiben..."
                   value={newMessage}
@@ -599,13 +650,14 @@ function TicketsTab({ ticketData, user }: any) {
                     message: newMessage,
                     senderName: user?.name ?? user?.email ?? "Kunde",
                     senderRole: "customer",
-                    attachments: [],
+                    attachments: messageAttachments,
                   })}
                   disabled={!newMessage.trim() || addMessage.isPending}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white self-end h-9 px-3"
                 >
                   {addMessage.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
+                </div>
               </div>
             )}
           </div>
@@ -742,35 +794,81 @@ function PaymentsTab({ ordersData, ordersLoading }: any) {
 // ─── Security Tab ─────────────────────────────────────────────────────────────
 function SecurityTab({ user }: any) {
   const { data: loginHistoryData, isLoading } = trpc.profile.loginHistory.useQuery();
+  const { data: devices = [] } = trpc.profile.devices.useQuery();
+  const { data: suspiciousLogins = [] } = trpc.profile.suspiciousLogins.useQuery();
+  const logoutAllSessions = trpc.profile.logoutAllSessions.useMutation({
+    onSuccess: () => toast.success("Alle gespeicherten Sessions wurden beendet."),
+    onError: (e) => toast.error(e.message),
+  });
   const loginHistory = loginHistoryData?.items ?? [];
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="bg-[#111827] rounded-xl border border-[#1E293B] p-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-indigo-400" />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="bg-[#111827] rounded-xl border border-[#1E293B] p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-indigo-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-[#F1F5F9]">Zwei-Faktor-Authentifizierung</h3>
+                <p className="text-xs text-[#64748B] mt-0.5">Erhöhe die Sicherheit deines Accounts</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-semibold text-[#F1F5F9]">Zwei-Faktor-Authentifizierung</h3>
-              <p className="text-xs text-[#64748B] mt-0.5">Erhöhe die Sicherheit deines Accounts</p>
+            <div className="flex items-center gap-2">
+              {user?.twoFactorEnabled ? (
+                <span className="text-xs px-2 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 font-medium">Aktiv</span>
+              ) : (
+                <span className="text-xs px-2 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 font-medium">Inaktiv</span>
+              )}
+              <Link to="/settings">
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10">
+                  Verwalten <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                </Button>
+              </Link>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {user?.twoFactorEnabled ? (
-              <span className="text-xs px-2 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 font-medium">Aktiv</span>
-            ) : (
-              <span className="text-xs px-2 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 font-medium">Inaktiv</span>
-            )}
-            <Link to="/settings">
-              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10">
-                Verwalten <ChevronRight className="w-3.5 h-3.5 ml-1" />
-              </Button>
-            </Link>
+        </div>
+        <div className="bg-[#111827] rounded-xl border border-[#1E293B] p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-[#F1F5F9]">Session-Kontrolle</h3>
+              <p className="text-xs text-[#64748B] mt-0.5">Alle Geräte abmelden und Refresh-Sessions widerrufen.</p>
+            </div>
+            <Button onClick={() => logoutAllSessions.mutate()} disabled={logoutAllSessions.isPending} size="sm" className="bg-red-600 hover:bg-red-700 text-white">
+              {logoutAllSessions.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <LogOut className="w-4 h-4 mr-1" />} Alle abmelden
+            </Button>
+          </div>
+          <div className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3">
+            <p className="text-xs font-semibold text-amber-200">Verdächtige Login-Warnungen</p>
+            <p className="mt-1 text-xs text-[#CBD5E1]">{(suspiciousLogins as any[]).length} fehlgeschlagene Login-Versuche in der letzten Historie.</p>
           </div>
         </div>
       </div>
+
+      <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#1E293B] flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-[#F1F5F9]">Geräteübersicht</h3>
+            <p className="text-xs text-[#64748B] mt-0.5">Gruppiert nach Gerät, IP und Land.</p>
+          </div>
+          <Monitor className="w-5 h-5 text-indigo-400" />
+        </div>
+        {(devices as any[]).length === 0 ? (
+          <div className="text-center py-10"><Smartphone className="w-8 h-8 text-[#64748B] mx-auto mb-2" /><p className="text-sm text-[#64748B]">Noch keine Geräte erkannt.</p></div>
+        ) : (
+          <div className="divide-y divide-[#1E293B]">
+            {(devices as any[]).map((device: any, idx: number) => (
+              <div key={`${device.userAgent}-${device.ipAddress}-${idx}`} className="px-5 py-3.5">
+                <div className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-[#94A3B8]" /><p className="text-sm text-[#F1F5F9] truncate">{device.userAgent}</p></div>
+                <p className="text-xs text-[#64748B] mt-1">{device.ipAddress}{device.country ? ` · ${device.country}` : ""} · zuletzt {formatDateTime(device.lastSeenAt)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="bg-[#111827] rounded-xl border border-[#1E293B] overflow-hidden">
         <div className="px-5 py-4 border-b border-[#1E293B]">
           <h3 className="text-sm font-semibold text-[#F1F5F9]">Login-Verlauf</h3>
@@ -791,16 +889,10 @@ function SecurityTab({ user }: any) {
                   <div className={`w-2 h-2 rounded-full ${log.success ? "bg-green-400" : "bg-red-400"}`} />
                   <div>
                     <p className="text-sm text-[#F1F5F9]">{formatDateTime(log.createdAt)}</p>
-                    <p className="text-xs text-[#64748B]">
-                      {log.ipAddress ?? "Unbekannte IP"}
-                      {log.country ? ` · ${log.country}` : ""}
-                      {log.failReason ? ` · ${log.failReason}` : ""}
-                    </p>
+                    <p className="text-xs text-[#64748B]">{log.ipAddress ?? "Unbekannte IP"}{log.country ? ` · ${log.country}` : ""}{log.failReason ? ` · ${log.failReason}` : ""}</p>
                   </div>
                 </div>
-                <span className={`text-xs font-medium ${log.success ? "text-green-400" : "text-red-400"}`}>
-                  {log.success ? "Erfolgreich" : "Fehlgeschlagen"}
-                </span>
+                <span className={`text-xs font-medium ${log.success ? "text-green-400" : "text-red-400"}`}>{log.success ? "Erfolgreich" : "Fehlgeschlagen"}</span>
               </div>
             ))}
           </div>
@@ -1062,6 +1154,122 @@ function CreditsTab({ user }: any) {
   );
 }
 
+
+// ─── Favorites Tab ───────────────────────────────────────────────────────────
+function FavoritesTab({ ordersData }: any) {
+  const utils = trpc.useUtils();
+  const { data, isLoading } = trpc.favorites.list.useQuery();
+  const { data: purchasedShops = [] } = trpc.favorites.purchasedShops.useQuery();
+  const addProduct = trpc.favorites.addProduct.useMutation({ onSuccess: () => { toast.success("Produkt als Favorit gespeichert"); utils.favorites.list.invalidate(); } });
+  const removeProduct = trpc.favorites.removeProduct.useMutation({ onSuccess: () => { toast.success("Produkt aus Favoriten entfernt"); utils.favorites.list.invalidate(); } });
+  const addShop = trpc.favorites.addShop.useMutation({ onSuccess: () => { toast.success("Shop-Favorit gespeichert"); utils.favorites.list.invalidate(); utils.favorites.purchasedShops.invalidate(); } });
+  const removeShop = trpc.favorites.removeShop.useMutation({ onSuccess: () => { toast.success("Shop-Favorit entfernt"); utils.favorites.list.invalidate(); utils.favorites.purchasedShops.invalidate(); } });
+  const toggleShopNotifications = trpc.favorites.toggleShopNotifications.useMutation({ onSuccess: () => { toast.success("Shop-Benachrichtigung aktualisiert"); utils.favorites.list.invalidate(); utils.favorites.purchasedShops.invalidate(); } });
+
+  const purchasedProducts = (ordersData?.items ?? []).flatMap((order: any) => (order.items ?? []).map((item: any) => item.product).filter(Boolean));
+  const uniquePurchasedProducts = Array.from(new Map(purchasedProducts.map((p: any) => [p.id, p])).values());
+  const favoriteProductIds = new Set((data?.productFavorites ?? []).map((f: any) => f.productId));
+  const favoriteShopIds = new Set((data?.shopFavorites ?? []).map((f: any) => f.shopId));
+
+  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 text-indigo-400 animate-spin" /></div>;
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-[#1E293B] bg-[#111827] p-5">
+          <h3 className="mb-3 text-sm font-semibold text-[#F1F5F9]">Produkt-Favoriten</h3>
+          {(data?.productFavorites ?? []).length === 0 ? <p className="text-sm text-[#64748B]">Noch keine Produkte gespeichert.</p> : (
+            <div className="space-y-3">{data?.productFavorites.map((fav: any) => (
+              <div key={fav.favoriteId} className="flex items-center justify-between rounded-lg border border-[#1E293B] bg-[#0F172A] p-3">
+                <div><p className="text-sm font-medium text-[#F1F5F9]">{fav.name}</p><p className="text-xs text-[#64748B]">{formatCurrency(fav.price)} · Preisalarm {fav.notifyPriceChanges ? "aktiv" : "inaktiv"}</p></div>
+                <Button size="sm" variant="ghost" onClick={() => removeProduct.mutate({ productId: fav.productId })} className="h-8 text-red-300 hover:bg-red-500/10"><Trash2 className="w-4 h-4" /></Button>
+              </div>
+            ))}</div>
+          )}
+        </div>
+        <div className="rounded-xl border border-[#1E293B] bg-[#111827] p-5">
+          <h3 className="mb-3 text-sm font-semibold text-[#F1F5F9]">Shop-Favoriten</h3>
+          {(data?.shopFavorites ?? []).length === 0 ? <p className="text-sm text-[#64748B]">Noch keine Shops gespeichert.</p> : (
+            <div className="space-y-3">{data?.shopFavorites.map((fav: any) => (
+              <div key={fav.favoriteId} className="rounded-lg border border-[#1E293B] bg-[#0F172A] p-3">
+                <div className="flex items-center justify-between"><div><p className="text-sm font-medium text-[#F1F5F9]">{fav.name}</p><p className="text-xs text-[#64748B]">{fav.totalProducts ?? 0} Produkte · Updates {fav.notifyShopUpdates ? "aktiv" : "inaktiv"}</p></div><Button size="sm" variant="ghost" onClick={() => removeShop.mutate({ shopId: fav.shopId })} className="h-8 text-red-300 hover:bg-red-500/10"><Trash2 className="w-4 h-4" /></Button></div>
+                <Button size="sm" variant="outline" onClick={() => toggleShopNotifications.mutate({ shopId: fav.shopId, enabled: !fav.notifyShopUpdates })} className="mt-3 h-8 border-[#2D3748] bg-transparent text-xs text-[#CBD5E1] hover:bg-[#1A2235]">{fav.notifyShopUpdates ? "Benachrichtigungen deaktivieren" : "Shop-Benachrichtigungen aktivieren"}</Button>
+              </div>
+            ))}</div>
+          )}
+        </div>
+      </div>
+      <div className="rounded-xl border border-[#1E293B] bg-[#111827] p-5">
+        <h3 className="mb-3 text-sm font-semibold text-[#F1F5F9]">Gekaufte Produkte zur Favoritenliste hinzufügen</h3>
+        {uniquePurchasedProducts.length === 0 ? <p className="text-sm text-[#64748B]">Noch keine gekauften Produkte vorhanden.</p> : <div className="grid gap-3 md:grid-cols-2">{uniquePurchasedProducts.map((product: any) => (
+          <div key={product.id} className="flex items-center justify-between rounded-lg border border-[#1E293B] bg-[#0F172A] p-3"><span className="text-sm text-[#F1F5F9]">{product.name}</span><Button size="sm" disabled={favoriteProductIds.has(product.id)} onClick={() => addProduct.mutate({ productId: product.id, notifyPriceChanges: true })} className="h-8 bg-indigo-600 text-white hover:bg-indigo-700"><Heart className="mr-1 w-3.5 h-3.5" />{favoriteProductIds.has(product.id) ? "Gespeichert" : "Speichern"}</Button></div>
+        ))}</div>}
+      </div>
+      <div className="rounded-xl border border-[#1E293B] bg-[#111827] p-5">
+        <h3 className="mb-3 text-sm font-semibold text-[#F1F5F9]">Shops aus Käufen speichern</h3>
+        {(purchasedShops as any[]).length === 0 ? <p className="text-sm text-[#64748B]">Noch keine gekauften Shops verfügbar.</p> : <div className="grid gap-3 md:grid-cols-2">{(purchasedShops as any[]).map((shop: any) => (
+          <div key={shop.id} className="rounded-lg border border-[#1E293B] bg-[#0F172A] p-3"><div className="flex items-center justify-between"><span className="text-sm text-[#F1F5F9]">{shop.name}</span><Button size="sm" disabled={favoriteShopIds.has(shop.id)} onClick={() => addShop.mutate({ shopId: shop.id, notifyShopUpdates: true })} className="h-8 bg-indigo-600 text-white hover:bg-indigo-700"><Store className="mr-1 w-3.5 h-3.5" />{favoriteShopIds.has(shop.id) ? "Gespeichert" : "Speichern"}</Button></div></div>
+        ))}</div>}
+      </div>
+    </div>
+  );
+}
+
+// ─── Notifications Tab ───────────────────────────────────────────────────────
+function NotificationsTab({ user }: any) {
+  const utils = trpc.useUtils();
+  const [typeFilter, setTypeFilter] = useState("all");
+  const { data, isLoading } = trpc.notifications.list.useQuery({ type: typeFilter as any, unreadOnly: false, page: 1, limit: 30 });
+  const markRead = trpc.notifications.markRead.useMutation({ onSuccess: () => utils.notifications.list.invalidate() });
+  const markAllRead = trpc.notifications.markAllRead.useMutation({ onSuccess: () => { toast.success("Alle Benachrichtigungen als gelesen markiert"); utils.notifications.list.invalidate(); } });
+  const notificationTypes = [
+    ["all", "Alle"], ["order", "Käufe"], ["download", "Downloads"], ["ticket", "Tickets"], ["refund", "Refunds"], ["promo", "Promos"], ["system", "System"], ["security", "Sicherheit"],
+  ];
+  return (
+    <div className="space-y-5 animate-fade-in">
+      <div className="rounded-xl border border-[#1E293B] bg-[#111827] p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="text-sm font-semibold text-[#F1F5F9]">In-App & E-Mail Notifications</h3><p className="text-xs text-[#64748B]">Kaufbestätigungen, Downloads, Ticket-Antworten, Refunds, Promos und Systemmeldungen.</p></div><Button size="sm" onClick={() => markAllRead.mutate()} className="bg-indigo-600 text-white hover:bg-indigo-700">Alle gelesen</Button></div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-4">{[
+          { label: "E-Mail", active: user?.notifyEmail, icon: Mail }, { label: "Käufe", active: user?.notifyOrderEmail, icon: ShoppingBag }, { label: "Tickets", active: user?.notifyTicketEmail, icon: Ticket }, { label: "Promos", active: user?.notifyNewsletterEmail, icon: Megaphone },
+        ].map((item) => <div key={item.label} className="rounded-lg border border-[#1E293B] bg-[#0F172A] p-3"><item.icon className="mb-2 h-4 w-4 text-indigo-400" /><p className="text-xs text-[#94A3B8]">{item.label}</p><p className={`text-sm font-semibold ${item.active ? "text-green-400" : "text-[#64748B]"}`}>{item.active ? "Aktiv" : "Inaktiv"}</p></div>)}</div>
+      </div>
+      <div className="flex flex-wrap gap-2">{notificationTypes.map(([id, label]) => <button key={id} onClick={() => setTypeFilter(id)} className={`rounded-full border px-3 py-1 text-xs ${typeFilter === id ? "border-indigo-500 bg-indigo-500/20 text-indigo-200" : "border-[#2D3748] text-[#94A3B8] hover:bg-[#1A2235]"}`}>{label}</button>)}</div>
+      <div className="rounded-xl border border-[#1E293B] bg-[#111827] overflow-hidden">
+        {isLoading ? <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 text-indigo-400 animate-spin" /></div> : (data?.items ?? []).length === 0 ? <div className="py-12 text-center"><Bell className="mx-auto mb-2 h-9 w-9 text-[#64748B]" /><p className="text-sm text-[#64748B]">Keine Benachrichtigungen vorhanden.</p></div> : <div className="divide-y divide-[#1E293B]">{data?.items.map((n: any) => <div key={n.id} className="flex items-start gap-3 p-4"><div className={`mt-1 h-2 w-2 rounded-full ${n.isRead ? "bg-[#2D3748]" : "bg-indigo-400"}`} /><div className="min-w-0 flex-1"><p className="text-sm font-medium text-[#F1F5F9]">{n.title}</p><p className="mt-1 text-sm text-[#CBD5E1]">{n.message}</p><p className="mt-1 text-xs text-[#64748B]">{formatDateTime(n.createdAt)} · {n.type}</p></div>{!n.isRead && <Button size="sm" variant="ghost" onClick={() => markRead.mutate({ id: n.id })} className="h-8 text-indigo-300 hover:bg-indigo-500/10">Gelesen</Button>}</div>)}</div>}
+      </div>
+    </div>
+  );
+}
+
+// ─── Coupons Tab ─────────────────────────────────────────────────────────────
+function CouponsTab() {
+  const { data, isLoading } = trpc.coupon.buyerOverview.useQuery();
+  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 text-indigo-400 animate-spin" /></div>;
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="grid gap-4 md:grid-cols-3"><div className="rounded-xl border border-[#1E293B] bg-[#111827] p-4"><Tag className="mb-2 h-5 w-5 text-indigo-400" /><p className="text-xs text-[#64748B]">Aktive Gutscheine</p><p className="text-2xl font-bold text-[#F1F5F9]">{data?.activeCoupons?.length ?? 0}</p></div><div className="rounded-xl border border-[#1E293B] bg-[#111827] p-4"><Gift className="mb-2 h-5 w-5 text-green-400" /><p className="text-xs text-[#64748B]">Gesparte Summe</p><p className="text-2xl font-bold text-green-400">{formatCurrency(data?.totalDiscount ?? 0)}</p></div><div className="rounded-xl border border-[#1E293B] bg-[#111827] p-4"><History className="mb-2 h-5 w-5 text-amber-400" /><p className="text-xs text-[#64748B]">Einlösungen</p><p className="text-2xl font-bold text-[#F1F5F9]">{data?.usedOrders?.length ?? 0}</p></div></div>
+      <div className="rounded-xl border border-[#1E293B] bg-[#111827] p-5"><h3 className="mb-4 text-sm font-semibold text-[#F1F5F9]">Aktive Promotions</h3>{(data?.activeCoupons ?? []).length === 0 ? <p className="text-sm text-[#64748B]">Aktuell keine aktiven Gutscheine.</p> : <div className="grid gap-3 md:grid-cols-2">{data?.activeCoupons.map((coupon: any) => <div key={coupon.id} className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-4"><p className="font-mono text-sm font-bold text-indigo-200">{coupon.code}</p><p className="mt-1 text-xs text-[#CBD5E1]">{coupon.type === "percentage" ? `${coupon.value}% Rabatt` : `${formatCurrency(coupon.value)} Rabatt`} · Mindestwert {formatCurrency(coupon.minOrderAmount ?? 0)}</p><p className="mt-1 text-xs text-[#64748B]">Gültig bis: {coupon.expiresAt ? formatDate(coupon.expiresAt) : "unbegrenzt"}</p></div>)}</div>}</div>
+      <div className="rounded-xl border border-[#1E293B] bg-[#111827] p-5"><h3 className="mb-4 text-sm font-semibold text-[#F1F5F9]">Rabatt-Historie</h3>{(data?.usedOrders ?? []).length === 0 ? <p className="text-sm text-[#64748B]">Noch keine Gutscheine eingelöst.</p> : <div className="divide-y divide-[#1E293B]">{data?.usedOrders.map((order: any) => <div key={order.id} className="flex items-center justify-between py-3"><div><p className="text-sm text-[#F1F5F9]">{order.couponCode}</p><p className="text-xs text-[#64748B]">{order.orderNumber} · {formatDate(order.createdAt)}</p></div><span className="text-sm font-semibold text-green-400">-{formatCurrency(order.discount ?? 0)}</span></div>)}</div>}</div>
+    </div>
+  );
+}
+
+// ─── Subscriptions Tab ───────────────────────────────────────────────────────
+function SubscriptionsTab() {
+  const utils = trpc.useUtils();
+  const { data: subscriptions = [], isLoading } = trpc.subscription.myList.useQuery();
+  const cancel = trpc.subscription.cancel.useMutation({ onSuccess: () => { toast.success("Abonnement gekündigt"); utils.subscription.myList.invalidate(); } });
+  const renew = trpc.subscription.renew.useMutation({ onSuccess: () => { toast.success("Abonnement verlängert"); utils.subscription.myList.invalidate(); } });
+  const reactivate = trpc.subscription.reactivate.useMutation({ onSuccess: () => { toast.success("Abonnement reaktiviert"); utils.subscription.myList.invalidate(); } });
+  const intervalLabel = (sub: any) => sub.interval === "monthly" ? "Monatlich" : sub.interval === "yearly" ? "Jährlich" : `Alle ${sub.intervalDays ?? "?"} Tage`;
+  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 text-indigo-400 animate-spin" /></div>;
+  return (
+    <div className="space-y-4 animate-fade-in">
+      {subscriptions.length === 0 ? <div className="rounded-xl border border-[#1E293B] bg-[#111827] py-16 text-center"><CalendarDays className="mx-auto mb-3 h-10 w-10 text-[#64748B]" /><p className="text-sm text-[#64748B]">Keine aktiven Abonnements.</p></div> : subscriptions.map((sub: any) => <div key={sub.id} className="rounded-xl border border-[#1E293B] bg-[#111827] p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-sm font-semibold text-[#F1F5F9]">{sub.product?.name ?? `Abo #${sub.id}`}</p><p className="mt-1 text-xs text-[#64748B]">Intervall: {intervalLabel(sub)} · Status: {sub.status}</p><p className="mt-1 text-xs text-[#64748B]">Aktueller Zeitraum: {formatDate(sub.currentPeriodStart)} bis {formatDate(sub.currentPeriodEnd)}</p>{sub.cancelAtPeriodEnd && <p className="mt-2 text-xs text-amber-300">Kündigung zum Periodenende vorgemerkt.</p>}</div><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => cancel.mutate({ id: sub.id, immediately: false })} disabled={sub.status === "cancelled"} className="border-[#2D3748] bg-transparent text-[#CBD5E1] hover:bg-[#1A2235]">Kündigen</Button><Button size="sm" onClick={() => renew.mutate({ id: sub.id })} className="bg-indigo-600 text-white hover:bg-indigo-700"><RefreshCw className="mr-1 h-3.5 w-3.5" />Verlängern</Button>{(sub.status === "cancelled" || sub.cancelAtPeriodEnd) && <Button size="sm" onClick={() => reactivate.mutate({ id: sub.id })} className="bg-green-600 text-white hover:bg-green-700">Reaktivieren</Button>}{sub.orderId && <Link to={`/invoice/${sub.orderId}`}><Button size="sm" variant="ghost" className="text-indigo-300 hover:bg-indigo-500/10"><FileText className="mr-1 h-3.5 w-3.5" />Rechnung</Button></Link>}</div></div></div>)}
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function UserDashboard() {
   const { tab } = useParams<{ tab?: string }>();
@@ -1124,6 +1332,10 @@ export default function UserDashboard() {
     security: "Sicherheit",
     settings: "Einstellungen",
     credits: "Mein Guthaben",
+    favorites: "Favoriten & Wishlist",
+    notifications: "Benachrichtigungen",
+    coupons: "Coupons & Rabatte",
+    subscriptions: "Meine Abonnements",
   };
 
   return (
@@ -1213,6 +1425,10 @@ export default function UserDashboard() {
             {activeTab === "security" && <SecurityTab user={user} />}
             {activeTab === "settings" && <SettingsTab user={user} />}
             {activeTab === "credits" && <CreditsTab user={user} />}
+            {activeTab === "favorites" && <FavoritesTab ordersData={ordersData} />}
+            {activeTab === "notifications" && <NotificationsTab user={user} />}
+            {activeTab === "coupons" && <CouponsTab />}
+            {activeTab === "subscriptions" && <SubscriptionsTab />}
           </div>
         </main>
       </div>

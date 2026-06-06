@@ -250,6 +250,8 @@ digisell/
 ├── MY_TODO.md              # General platform roadmap and feature status
 ├── ADMIN_TODO.md           # Admin panel feature status
 └── BUYER_DASHBOARD_TODO.md # Buyer dashboard feature status
+
+Status 2026-06-06: Buyer Dashboard TODO: ✅ abgeschlossen. Implementiert wurden Favoriten/Wishlist, Shop-Benachrichtigungen, In-App-Notifications, Coupon-/Rabattübersicht, Buyer-Abonnements, Chargeback-Anzeige, Ticket-Dateianhänge sowie Geräte-/Session-Sicherheitsfunktionen.
 ```
 
 ---

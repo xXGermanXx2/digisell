@@ -96,6 +96,23 @@ export const subscriptionRouter = createRouter({
       return { success: true };
     }),
 
+  renew: authedQuery
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const sub = await db.query.subscriptions.findFirst({
+        where: and(eq(subscriptions.id, input.id), eq(subscriptions.customerId, ctx.user!.id)),
+      });
+      if (!sub) throw Errors.notFound("Abonnement nicht gefunden.");
+      let days = 30;
+      if (sub.interval === "yearly") days = 365;
+      else if (sub.interval === "custom" && sub.intervalDays) days = sub.intervalDays;
+      const base = sub.currentPeriodEnd && new Date(sub.currentPeriodEnd) > new Date() ? new Date(sub.currentPeriodEnd) : new Date();
+      const newEnd = new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
+      await db.update(subscriptions).set({ status: "active", cancelAtPeriodEnd: false, cancelledAt: null, currentPeriodEnd: newEnd }).where(eq(subscriptions.id, sub.id));
+      return { success: true, currentPeriodEnd: newEnd };
+    }),
+
   adminList: adminQuery
     .input(z.object({
       status: z.enum(["active", "cancelled", "expired", "past_due", "trialing"]).optional(),

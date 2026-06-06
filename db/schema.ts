@@ -109,6 +109,43 @@ export const userWarnings = mysqlTable("user_warnings", {
   createdIdx: index("user_warnings_created_idx").on(t.createdAt),
 }));
 
+// ===================== BUYER FAVORITES =====================
+export const userFavorites = mysqlTable("user_favorites", {
+  id: serial("id").primaryKey(),
+  userId: bigint("user_id", { mode: "number", unsigned: true }).references(() => users.id, { onDelete: "cascade" }).notNull(),
+  type: mysqlEnum("type", ["product", "shop"]).notNull(),
+  productId: bigint("product_id", { mode: "number", unsigned: true }).references(() => products.id, { onDelete: "cascade" }),
+  shopId: bigint("shop_id", { mode: "number", unsigned: true }).references(() => shops.id, { onDelete: "cascade" }),
+  notifyPriceChanges: boolean("notify_price_changes").notNull().default(false),
+  notifyShopUpdates: boolean("notify_shop_updates").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  userTypeIdx: index("user_favorites_user_type_idx").on(t.userId, t.type),
+  productIdx: index("user_favorites_product_idx").on(t.productId),
+  shopIdx: index("user_favorites_shop_idx").on(t.shopId),
+  uniqProduct: uniqueIndex("user_favorites_unique_product").on(t.userId, t.productId),
+  uniqShop: uniqueIndex("user_favorites_unique_shop").on(t.userId, t.shopId),
+}));
+
+// ===================== USER NOTIFICATIONS =====================
+export const userNotifications = mysqlTable("user_notifications", {
+  id: serial("id").primaryKey(),
+  userId: bigint("user_id", { mode: "number", unsigned: true }).references(() => users.id, { onDelete: "cascade" }).notNull(),
+  type: mysqlEnum("type", ["order", "download", "ticket", "refund", "promo", "system", "security", "price_change"]).notNull().default("system"),
+  channel: mysqlEnum("channel", ["in_app", "email"]).notNull().default("in_app"),
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  actionUrl: varchar("action_url", { length: 500 }),
+  isRead: boolean("is_read").notNull().default(false),
+  metadata: json("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  readAt: timestamp("read_at"),
+}, (t) => ({
+  userReadIdx: index("user_notifications_user_read_idx").on(t.userId, t.isRead),
+  typeIdx: index("user_notifications_type_idx").on(t.type),
+  createdIdx: index("user_notifications_created_idx").on(t.createdAt),
+}));
+
 // ===================== CATEGORIES =====================
 export const categories = mysqlTable("categories", {
   id: serial("id").primaryKey(),
@@ -292,6 +329,25 @@ export const paymentLogs = mysqlTable("payment_logs", {
 }, (t) => ({
   orderIdx: index("order_idx").on(t.orderId),
   createdAtIdx: index("created_at_idx").on(t.createdAt),
+}));
+
+// ===================== CHARGEBACKS =====================
+export const chargebacks = mysqlTable("chargebacks", {
+  id: serial("id").primaryKey(),
+  orderId: bigint("order_id", { mode: "number", unsigned: true }).references(() => orders.id, { onDelete: "cascade" }).notNull(),
+  provider: mysqlEnum("provider", ["stripe", "paypal", "crypto", "system"]).notNull().default("system"),
+  status: mysqlEnum("status", ["none", "in_review", "won", "lost", "accepted", "closed"]).notNull().default("in_review"),
+  amount: decimal("amount", { precision: 10, scale: 2 }),
+  currency: varchar("currency", { length: 3 }).default("EUR"),
+  reason: varchar("reason", { length: 255 }),
+  externalId: varchar("external_id", { length: 255 }),
+  openedAt: timestamp("opened_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+}, (t) => ({
+  orderIdx: index("chargebacks_order_idx").on(t.orderId),
+  statusIdx: index("chargebacks_status_idx").on(t.status),
 }));
 
 // ===================== DELIVERY LOGS =====================
@@ -710,6 +766,9 @@ export type Webhook = typeof webhooks.$inferSelect;
 export type WebhookLog = typeof webhookLogs.$inferSelect;
 export type SystemLog = typeof systemLogs.$inferSelect;
 export type PaymentLog = typeof paymentLogs.$inferSelect;
+export type Chargeback = typeof chargebacks.$inferSelect;
+export type UserNotification = typeof userNotifications.$inferSelect;
+export type UserFavorite = typeof userFavorites.$inferSelect;
 export type DownloadLog = typeof downloadLogs.$inferSelect;
 export type DeliveryLog = typeof deliveryLogs.$inferSelect;
 export type VisitorStat = typeof visitorStats.$inferSelect;

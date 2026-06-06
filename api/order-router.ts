@@ -4,7 +4,8 @@ import { createRouter, publicQuery, authedQuery, adminQuery } from "./middleware
 import { getDb } from "./queries/connection";
 import {
   orders, orderItems, products, licenseKeys, coupons,
-  productFiles, paymentLogs, deliveryLogs,
+  productFiles, paymentLogs,
+  chargebacks, deliveryLogs,
 } from "@db/schema";
 import { Errors } from "@contracts/errors";
 
@@ -282,7 +283,17 @@ export const orderRouter = createRouter({
         }),
         db.select({ count: sql<number>`count(*)` }).from(orders).where(eq(orders.customerId, ctx.user.id)),
       ]);
-      return { items, page, total: Number(countResult[0]?.count ?? 0) };
+      const orderIds = items.map((order) => order.id);
+      const chargebackRows = orderIds.length
+        ? await db.select().from(chargebacks).where(sql`${chargebacks.orderId} IN (${sql.join(orderIds, sql`,`)})`)
+        : [];
+      const chargebackByOrder = new Map(chargebackRows.map((chargeback: any) => [chargeback.orderId, chargeback]));
+      const itemsWithChargebacks = items.map((order) => ({
+        ...order,
+        chargeback: chargebackByOrder.get(order.id) ?? null,
+        chargebackStatus: chargebackByOrder.get(order.id)?.status ?? "none",
+      }));
+      return { items: itemsWithChargebacks, page, total: Number(countResult[0]?.count ?? 0) };
     }),
 
   // ── Get order detail ──────────────────────────────────────────────────────

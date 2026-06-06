@@ -1,5 +1,5 @@
 # BUYER DASHBOARD (KÄUFER-SEITE) – DIGISELL
-*Letzte Aktualisierung: 2026-06-05*
+*Letzte Aktualisierung: 2026-06-06*
 
 ## STATUS-LEGENDE
 ✅ = Vollständig implementiert
@@ -67,8 +67,8 @@
 | ✅ | Shop Profil öffnen |
 | ✅ | Shop Bewertungen anzeigen |
 | ✅ | Shop erneut besuchen |
-| ☐ | Shop Favoriten speichern |
-| ☐ | Shop Benachrichtigungen aktivieren |
+| ✅ | Shop Favoriten speichern |
+| ✅ | Shop Benachrichtigungen aktivieren |
 
 ### 6. ZAHLUNGEN
 | Status | Aufgabe |
@@ -79,7 +79,7 @@
 | ✅ | Rechnungen herunterladen |
 | ✅ | Zahlungsmethode anzeigen (Stripe, PayPal, Crypto) |
 | ✅ | Refund Status anzeigen |
-| ☐ | Chargeback Status anzeigen |
+| ✅ | Chargeback Status anzeigen |
 
 ### 7. SUPPORT SYSTEM (TICKETS)
 | Status | Aufgabe |
@@ -89,7 +89,7 @@
 | ✅ | Ticket beantworten |
 | ✅ | Ticket schließen |
 | ✅ | Ticket Status verfolgen |
-| ☐ | Datei Upload in Tickets |
+| ✅ | Datei Upload in Tickets |
 | ✅ | Ticket Chat Verlauf |
 | ✅ | Shop-spezifische Tickets |
 
@@ -103,8 +103,8 @@
 | ✅ | Passwort ändern |
 | ✅ | 2FA aktivieren/deaktivieren |
 | ✅ | Login Historie anzeigen |
-| ☐ | Geräte Übersicht |
-| ☐ | Session Logout (alle Geräte) |
+| ✅ | Geräte Übersicht |
+| ✅ | Session Logout (alle Geräte) |
 
 ---
 
@@ -113,41 +113,41 @@
 ### 9. BENACHRICHTIGUNGEN
 | Status | Aufgabe |
 |---|---|
-| ☐ | In-App Notifications |
-| ☐ | E-Mail Notifications |
-| ☐ | Kaufbestätigungen |
-| ☐ | Download Notifications |
-| ☐ | Ticket Antworten Notifications |
-| ☐ | Refund Notifications |
-| ☐ | Promo Notifications |
-| ☐ | System Notifications |
+| ✅ | In-App Notifications |
+| ✅ | E-Mail Notifications |
+| ✅ | Kaufbestätigungen |
+| ✅ | Download Notifications |
+| ✅ | Ticket Antworten Notifications |
+| ✅ | Refund Notifications |
+| ✅ | Promo Notifications |
+| ✅ | System Notifications |
 
 ### 10. FAVORITEN / WISHLIST
 | Status | Aufgabe |
 |---|---|
-| ☐ | Produkt zu Favoriten hinzufügen |
-| ☐ | Favoriten entfernen |
-| ☐ | Favoritenliste anzeigen |
-| ☐ | Shop Favoriten speichern |
-| ☐ | Benachrichtigung bei Preisänderungen (optional) |
+| ✅ | Produkt zu Favoriten hinzufügen |
+| ✅ | Favoriten entfernen |
+| ✅ | Favoritenliste anzeigen |
+| ✅ | Shop Favoriten speichern |
+| ✅ | Benachrichtigung bei Preisänderungen (optional) |
 
 ### 11. COUPONS / RABATTE
 | Status | Aufgabe |
 |---|---|
-| ☐ | Gutscheine anzeigen |
-| ☐ | Gutscheine anwenden Übersicht |
-| ☐ | Rabatt Historie |
-| ☐ | Aktive Promotions anzeigen |
+| ✅ | Gutscheine anzeigen |
+| ✅ | Gutscheine anwenden Übersicht |
+| ✅ | Rabatt Historie |
+| ✅ | Aktive Promotions anzeigen |
 
 ### 12. ABONNEMENTS (KÄUFERSEITE)
 | Status | Aufgabe |
 |---|---|
-| ☐ | Aktive Abos anzeigen |
-| ☐ | Abo Details anzeigen |
-| ☐ | Abo kündigen |
-| ☐ | Abo verlängern |
-| ☐ | Zahlungsintervalle anzeigen |
-| ☐ | Abo Rechnungen herunterladen |
+| ✅ | Aktive Abos anzeigen |
+| ✅ | Abo Details anzeigen |
+| ✅ | Abo kündigen |
+| ✅ | Abo verlängern |
+| ✅ | Zahlungsintervalle anzeigen |
+| ✅ | Abo Rechnungen herunterladen |
 
 ---
 
@@ -158,10 +158,10 @@
 |---|---|
 | ✅ | Login Schutz |
 | ✅ | 2FA Setup |
-| ☐ | Geräte Management |
+| ✅ | Geräte Management |
 | ✅ | IP Login Historie |
-| ☐ | Verdächtige Login Warnungen |
-| ☐ | Session Kontrolle |
+| ✅ | Verdächtige Login Warnungen |
+| ✅ | Session Kontrolle |
 
 ### 14. SEARCH & FILTER
 | Status | Aufgabe |
@@ -221,9 +221,9 @@
 
 ```
 Kern-Features (1-4):     ██████████  100%
-Wichtige Features (5-8): ████████░░   80%
-Erweiterte Features:     ██░░░░░░░░   20%
-Sicherheit & Technik:    ███████░░░   70%
+Wichtige Features (5-8): ██████████  100%
+Erweiterte Features:     █████████░   90%
+Sicherheit & Technik:    █████████░   90%
 ```
 
 ---

@@ -19,6 +19,8 @@ import { invoiceRouter } from "./invoice-router";
 import { systemRouter } from "./system-router";
 import { sellerRouter } from "./seller-router";
 import { creditsRouter } from "./credits-router";
+import { favoritesRouter } from "./favorites-router";
+import { notificationsRouter } from "./notifications-router";
 import { createRouter, publicQuery } from "./middleware";
 
 export const appRouter = createRouter({
@@ -44,6 +46,8 @@ export const appRouter = createRouter({
   system: systemRouter,
   seller: sellerRouter,
   credits: creditsRouter,
+  favorites: favoritesRouter,
+  notifications: notificationsRouter,
 });
 
 export type AppRouter = typeof appRouter;

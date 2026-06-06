@@ -18,6 +18,8 @@ import {
   Shield,
   Coins,
   Wallet,
+  LogIn,
+  UserCircle,
 } from "lucide-react";
 
 function formatCurrency(val: number, currency = "EUR") {
@@ -103,10 +105,20 @@ export default function StorePage() {
                 <span className="text-xs font-semibold text-violet-400">{myShopBalance.toFixed(2)} Credits</span>
               </div>
             )}
-            <div className="flex items-center gap-1 text-gray-500 text-xs">
+            <div className="hidden md:flex items-center gap-1 text-gray-500 text-xs">
               <Globe className="w-3 h-3" />
-              <span className="hidden sm:inline">digisell.app/store/{shop.slug}</span>
+              <span>digisell.app/store/{shop.slug}</span>
             </div>
+            <Link
+              to={user ? "/dashboard" : "/login"}
+              className={user
+                ? "inline-flex shrink-0 items-center justify-center rounded-md border border-[#334155] bg-[#1E293B] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#334155]"
+                : "inline-flex shrink-0 items-center justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-900/30 transition hover:bg-indigo-700"
+              }
+            >
+              {user ? <UserCircle className="w-4 h-4 mr-1.5" /> : <LogIn className="w-4 h-4 mr-1.5" />}
+              {user ? "Käuferkonto" : "Käufer-Login"}
+            </Link>
           </div>
         </div>
       </header>
@@ -142,6 +154,20 @@ export default function StorePage() {
         {shop.description && (
           <p className="text-gray-400 text-sm sm:text-base mb-5 max-w-2xl">{shop.description}</p>
         )}
+
+        <div className="mb-6 rounded-xl border border-indigo-500/25 bg-indigo-500/10 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-white">Käuferbereich</p>
+            <p className="text-xs text-indigo-200/80 mt-1">Melde dich an, um Käufe, Downloads, Rechnungen und Support-Tickets zu verwalten.</p>
+          </div>
+          <Link
+            to={user ? "/dashboard" : "/login"}
+            className="inline-flex shrink-0 items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+          >
+            {user ? <UserCircle className="w-4 h-4 mr-2" /> : <LogIn className="w-4 h-4 mr-2" />}
+            {user ? "Zum Käuferkonto" : "Zum Käufer-Login"}
+          </Link>
+        </div>
 
         {/* Stats */}
         <div className="flex items-center gap-4 sm:gap-6 mb-8 flex-wrap">

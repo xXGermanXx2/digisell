@@ -1,4 +1,5 @@
 import { useParams, Link } from "react-router";
+import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/providers/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,8 @@ import {
   Zap,
   Download,
   Store,
+  LogIn,
+  UserCircle,
 } from "lucide-react";
 
 function formatCurrency(val: number, currency = "EUR") {
@@ -37,6 +40,7 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
 
 export default function StoreProductPage() {
   const { slug: shopSlug, productSlug } = useParams<{ slug: string; productSlug: string }>();
+  const { user } = useAuth({});
 
   const { data, isLoading, error } = trpc.seller.getPublicProduct.useQuery(
     { shopSlug: shopSlug ?? "", productSlug: productSlug ?? "" },
@@ -85,13 +89,25 @@ export default function StoreProductPage() {
             )}
             <span className="text-white font-semibold text-sm group-hover:text-indigo-400 transition-colors">{shop.name}</span>
           </Link>
-          <Link
-            to={`/store/${shop.slug}`}
-            className="flex items-center gap-1.5 text-gray-400 hover:text-white text-sm transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Zurück zum Shop</span>
-          </Link>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              to={`/store/${shop.slug}`}
+              className="flex items-center gap-1.5 text-gray-400 hover:text-white text-sm transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Zurück zum Shop</span>
+            </Link>
+            <Link
+              to={user ? "/dashboard" : "/login"}
+              className={user
+                ? "inline-flex shrink-0 items-center justify-center rounded-md border border-[#334155] bg-[#1E293B] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#334155]"
+                : "inline-flex shrink-0 items-center justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-900/30 transition hover:bg-indigo-700"
+              }
+            >
+              {user ? <UserCircle className="w-4 h-4 mr-1.5" /> : <LogIn className="w-4 h-4 mr-1.5" />}
+              {user ? "Käuferkonto" : "Käufer-Login"}
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -200,13 +216,27 @@ export default function StoreProductPage() {
                 </div>
               )}
 
+              {!user && (
+                <div className="mb-3 rounded-xl border border-indigo-500/25 bg-indigo-500/10 p-3">
+                  <p className="text-sm font-semibold text-white">Käufer-Login erforderlich</p>
+                  <p className="text-xs text-indigo-200/80 mt-1">Melde dich an, um den Kauf abzuschließen und deine Downloads später im Käuferkonto zu verwalten.</p>
+                  <Link
+                    to="/login"
+                    className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Zum Käufer-Login
+                  </Link>
+                </div>
+              )}
+
               {/* Kaufen Button */}
               <Button
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-12 text-base font-semibold mb-3"
-                disabled={isOutOfStock}
+                disabled={isOutOfStock || !user}
               >
                 <ShoppingCart className="w-5 h-5 mr-2" />
-                {isOutOfStock ? "Ausverkauft" : "Jetzt kaufen"}
+                {isOutOfStock ? "Ausverkauft" : user ? "Jetzt kaufen" : "Bitte einloggen"}
               </Button>
 
               {/* Vertrauens-Badges */}

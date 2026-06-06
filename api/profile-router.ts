@@ -1,11 +1,11 @@
 import { z } from "zod";
 import * as bcrypt from "bcryptjs";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { createHash } from "crypto";
 import { createRouter, authedQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { users, apiKeys, orders, loginLogs, userWarnings } from "@db/schema";
+import { users, apiKeys, orders, loginLogs, userWarnings, refreshTokens } from "@db/schema";
 import { Errors } from "@contracts/errors";
 import { sendEmail, emailVerificationTemplate } from "./lib/email";
 import { env } from "./lib/env";
@@ -201,6 +201,41 @@ export const profileRouter = createRouter({
       return { success: true };
     }),
 
+
+  // ── Geräteübersicht aus erfolgreichen Logins ──
+  devices: authedQuery.query(async ({ ctx }) => {
+    const db = getDb();
+    const rows = await db.execute(sql`
+      SELECT
+        COALESCE(user_agent, 'Unbekanntes Gerät') AS userAgent,
+        COALESCE(ip_address, 'Unbekannte IP') AS ipAddress,
+        COALESCE(country, '') AS country,
+        MAX(created_at) AS lastSeenAt,
+        COUNT(*) AS loginCount
+      FROM login_logs
+      WHERE user_id = ${ctx.user!.id} AND success = true
+      GROUP BY COALESCE(user_agent, 'Unbekanntes Gerät'), COALESCE(ip_address, 'Unbekannte IP'), COALESCE(country, '')
+      ORDER BY lastSeenAt DESC
+      LIMIT 20
+    `);
+    return Array.isArray(rows) ? rows : (rows as unknown as { rows?: unknown[] }).rows ?? [];
+  }),
+
+  suspiciousLogins: authedQuery.query(async ({ ctx }) => {
+    const db = getDb();
+    const items = await db.query.loginLogs.findMany({
+      where: and(eq(loginLogs.userId, ctx.user!.id), eq(loginLogs.success, false)),
+      orderBy: [desc(loginLogs.createdAt)],
+      limit: 10,
+    });
+    return items;
+  }),
+
+  logoutAllSessions: authedQuery.mutation(async ({ ctx }) => {
+    const db = getDb();
+    await db.delete(refreshTokens).where(eq(refreshTokens.userId, ctx.user!.id));
+    return { success: true };
+  }),
   // ── Login History ──
   loginHistory: authedQuery
     .input(z.object({

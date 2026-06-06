@@ -1,10 +1,32 @@
 import { z } from "zod";
-import { eq, and } from "drizzle-orm";
-import { createRouter, publicQuery, adminQuery } from "./middleware";
+import { eq, and, desc, sql } from "drizzle-orm";
+import { createRouter, publicQuery, adminQuery, authedQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { coupons } from "@db/schema";
+import { coupons, orders } from "@db/schema";
 
 export const couponRouter = createRouter({
+  buyerOverview: authedQuery.query(async ({ ctx }) => {
+    const db = getDb();
+    const now = new Date();
+    const [activeCoupons, usedOrders, totals] = await Promise.all([
+      db.query.coupons.findMany({
+        where: and(eq(coupons.isActive, true)),
+        orderBy: (c, { desc }) => [desc(c.createdAt)],
+        limit: 20,
+      }),
+      db.query.orders.findMany({
+        where: and(eq(orders.customerId, ctx.user.id), sql`${orders.couponCode} IS NOT NULL AND ${orders.couponCode} <> ''`),
+        orderBy: [desc(orders.createdAt)],
+        limit: 30,
+      }),
+      db.select({ totalDiscount: sql<string>`COALESCE(SUM(${orders.discount}), 0)` }).from(orders).where(eq(orders.customerId, ctx.user.id)),
+    ]);
+    return {
+      activeCoupons: activeCoupons.filter((coupon) => !coupon.expiresAt || new Date(coupon.expiresAt) >= now),
+      usedOrders,
+      totalDiscount: totals[0]?.totalDiscount ?? "0",
+    };
+  }),
   list: adminQuery
     .input(
       z.object({
