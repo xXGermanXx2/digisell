@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router";
-import { useAuth } from "@/hooks/useAuth";
+import { useShopBuyerAuth } from "@/hooks/useShopBuyerAuth";
 import { trpc } from "@/providers/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +40,7 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
 
 export default function StoreProductPage() {
   const { slug: shopSlug, productSlug } = useParams<{ slug: string; productSlug: string }>();
-  const { user } = useAuth({});
+  const { buyer } = useShopBuyerAuth(shopSlug);
 
   const { data, isLoading, error } = trpc.seller.getPublicProduct.useQuery(
     { shopSlug: shopSlug ?? "", productSlug: productSlug ?? "" },
@@ -98,14 +98,14 @@ export default function StoreProductPage() {
               <span className="hidden sm:inline">Zurück zum Shop</span>
             </Link>
             <Link
-              to={user ? "/dashboard" : "/login"}
-              className={user
+              to={buyer ? `/store/${shop.slug}/account` : `/store/${shop.slug}/login`}
+              className={buyer
                 ? "inline-flex shrink-0 items-center justify-center rounded-md border border-[#334155] bg-[#1E293B] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#334155]"
                 : "inline-flex shrink-0 items-center justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-900/30 transition hover:bg-indigo-700"
               }
             >
-              {user ? <UserCircle className="w-4 h-4 mr-1.5" /> : <LogIn className="w-4 h-4 mr-1.5" />}
-              {user ? "Käuferkonto" : "Käufer-Login"}
+              {buyer ? <UserCircle className="w-4 h-4 mr-1.5" /> : <LogIn className="w-4 h-4 mr-1.5" />}
+              {buyer ? "Shop-Konto" : "Shop-Login"}
             </Link>
           </div>
         </div>
@@ -216,16 +216,16 @@ export default function StoreProductPage() {
                 </div>
               )}
 
-              {!user && (
+              {!buyer && (
                 <div className="mb-3 rounded-xl border border-indigo-500/25 bg-indigo-500/10 p-3">
-                  <p className="text-sm font-semibold text-white">Käufer-Login erforderlich</p>
-                  <p className="text-xs text-indigo-200/80 mt-1">Melde dich an, um den Kauf abzuschließen und deine Downloads später im Käuferkonto zu verwalten.</p>
+                  <p className="text-sm font-semibold text-white">Shop-Login erforderlich</p>
+                  <p className="text-xs text-indigo-200/80 mt-1">Melde dich mit dem Käuferkonto dieses Shops an. Ein Konto aus einem anderen Shop gilt hier nicht.</p>
                   <Link
-                    to="/login"
+                    to={`/store/${shop.slug}/login`}
                     className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
                   >
                     <LogIn className="w-4 h-4 mr-2" />
-                    Zum Käufer-Login
+                    Zum Shop-Login
                   </Link>
                 </div>
               )}
@@ -233,10 +233,10 @@ export default function StoreProductPage() {
               {/* Kaufen Button */}
               <Button
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-12 text-base font-semibold mb-3"
-                disabled={isOutOfStock || !user}
+                disabled={isOutOfStock || !buyer}
               >
                 <ShoppingCart className="w-5 h-5 mr-2" />
-                {isOutOfStock ? "Ausverkauft" : user ? "Jetzt kaufen" : "Bitte einloggen"}
+                {isOutOfStock ? "Ausverkauft" : buyer ? "Jetzt kaufen" : "Bitte im Shop einloggen"}
               </Button>
 
               {/* Vertrauens-Badges */}

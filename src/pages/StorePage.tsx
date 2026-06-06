@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router";
-import { useAuth } from "@/hooks/useAuth";
+import { useShopBuyerAuth } from "@/hooks/useShopBuyerAuth";
 import { trpc } from "@/providers/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,8 +16,6 @@ import {
   Download,
   Zap,
   Shield,
-  Coins,
-  Wallet,
   LogIn,
   UserCircle,
 } from "lucide-react";
@@ -42,17 +40,11 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
 
 export default function StorePage() {
   const { slug } = useParams<{ slug: string }>();
-  const { user } = useAuth({});
+  const { buyer } = useShopBuyerAuth(slug);
   const { data, isLoading, error } = trpc.seller.getPublicShop.useQuery(
     { slug: slug ?? "" },
     { enabled: !!slug }
   );
-  const shopId = data?.shop?.id;
-  const { data: shopCredits } = trpc.credits.getMyShopCredits.useQuery(
-    { shopId: shopId ?? "" },
-    { enabled: !!user && !!shopId }
-  );
-  const myShopBalance = shopCredits?.balance ?? 0;
 
   if (isLoading) {
     return (
@@ -99,25 +91,19 @@ export default function StorePage() {
             <Badge className="bg-green-500/20 text-green-400 text-xs hidden sm:flex">Aktiv</Badge>
           </div>
           <div className="flex items-center gap-3">
-            {user && myShopBalance > 0 && (
-              <div className="flex items-center gap-1.5 bg-violet-500/10 border border-violet-500/20 rounded-full px-3 py-1">
-                <Coins className="w-3.5 h-3.5 text-violet-400" />
-                <span className="text-xs font-semibold text-violet-400">{myShopBalance.toFixed(2)} Credits</span>
-              </div>
-            )}
             <div className="hidden md:flex items-center gap-1 text-gray-500 text-xs">
               <Globe className="w-3 h-3" />
               <span>digisell.app/store/{shop.slug}</span>
             </div>
             <Link
-              to={user ? "/dashboard" : "/login"}
-              className={user
+              to={buyer ? `/store/${shop.slug}/account` : `/store/${shop.slug}/login`}
+              className={buyer
                 ? "inline-flex shrink-0 items-center justify-center rounded-md border border-[#334155] bg-[#1E293B] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#334155]"
                 : "inline-flex shrink-0 items-center justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-900/30 transition hover:bg-indigo-700"
               }
             >
-              {user ? <UserCircle className="w-4 h-4 mr-1.5" /> : <LogIn className="w-4 h-4 mr-1.5" />}
-              {user ? "Käuferkonto" : "Käufer-Login"}
+              {buyer ? <UserCircle className="w-4 h-4 mr-1.5" /> : <LogIn className="w-4 h-4 mr-1.5" />}
+              {buyer ? "Shop-Konto" : "Shop-Login"}
             </Link>
           </div>
         </div>
@@ -158,14 +144,14 @@ export default function StorePage() {
         <div className="mb-6 rounded-xl border border-indigo-500/25 bg-indigo-500/10 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-white">Käuferbereich</p>
-            <p className="text-xs text-indigo-200/80 mt-1">Melde dich an, um Käufe, Downloads, Rechnungen und Support-Tickets zu verwalten.</p>
+            <p className="text-xs text-indigo-200/80 mt-1">Melde dich mit deinem Käuferkonto für genau diesen Shop an. Andere Shop-Logins gelten hier nicht.</p>
           </div>
           <Link
-            to={user ? "/dashboard" : "/login"}
+            to={buyer ? `/store/${shop.slug}/account` : `/store/${shop.slug}/login`}
             className="inline-flex shrink-0 items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
           >
-            {user ? <UserCircle className="w-4 h-4 mr-2" /> : <LogIn className="w-4 h-4 mr-2" />}
-            {user ? "Zum Käuferkonto" : "Zum Käufer-Login"}
+            {buyer ? <UserCircle className="w-4 h-4 mr-2" /> : <LogIn className="w-4 h-4 mr-2" />}
+            {buyer ? "Zum Shop-Konto" : "Zum Shop-Login"}
           </Link>
         </div>
 
@@ -185,18 +171,6 @@ export default function StorePage() {
           </div>
         </div>
 
-        {/* Shop-Guthaben Banner (nur wenn eingeloggt und Guthaben vorhanden) */}
-        {user && myShopBalance > 0 && (
-          <div className="mb-6 bg-violet-500/10 border border-violet-500/20 rounded-xl p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center flex-shrink-0">
-              <Wallet className="w-5 h-5 text-violet-400" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-violet-300">Du hast <span className="text-violet-400">{myShopBalance.toFixed(2)} Credits</span> in diesem Shop</p>
-              <p className="text-xs text-violet-400/70 mt-0.5">Dein Shop-Guthaben kann beim Kauf von Produkten in diesem Shop eingesetzt werden.</p>
-            </div>
-          </div>
-        )}
         {/* Produkte */}
         <div className="mb-16">
           <h2 className="text-lg sm:text-xl font-bold text-white mb-4">

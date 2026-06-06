@@ -116,13 +116,13 @@ export default function Navbar() {
             <div className="flex items-center gap-2">
               <Link to="/login">
                 <Button size="sm" variant="outline" className="border-[#2D3748] text-[#94A3B8] hover:text-white">
-                  Anmelden
+                  Plattform-Login
                 </Button>
               </Link>
               <Link to="/register">
                 <Button size="sm" className="gradient-bg text-white hover:opacity-90">
                   <User className="w-4 h-4 mr-1.5" />
-                  Registrieren
+                  Seller registrieren
                 </Button>
               </Link>
             </div>
@@ -166,7 +166,7 @@ export default function Navbar() {
               </Link>
               <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-white">
                 <User className="w-5 h-5" />
-                Mein Konto
+                Plattform-Konto
               </Link>
               {isAdmin && (
                 <Link to="/admin" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-white">
@@ -186,11 +186,11 @@ export default function Navbar() {
             <>
               <Link to="/login" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-white">
                 <User className="w-5 h-5" />
-                Anmelden
+                Plattform-Login
               </Link>
               <Link to="/register" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1A2235] text-[#94A3B8] hover:text-white">
                 <Package className="w-5 h-5" />
-                Registrieren
+                Seller registrieren
               </Link>
             </>
           )}

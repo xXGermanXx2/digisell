@@ -664,6 +664,38 @@ export const shops = mysqlTable("shops", {
   statusIdx: index("shop_status_idx").on(t.status),
 }));
 
+// ===================== SHOP-SCOPED BUYER ACCOUNTS =====================
+export const shopBuyerAccounts = mysqlTable("shop_buyer_accounts", {
+  id: serial("id").primaryKey(),
+  shopId: bigint("shop_id", { mode: "number", unsigned: true }).references(() => shops.id, { onDelete: "cascade" }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }),
+  status: mysqlEnum("status", ["active", "blocked", "pending"]).notNull().default("active"),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  lastSignInAt: timestamp("last_sign_in_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+}, (t) => ({
+  shopEmailUnique: uniqueIndex("shop_buyer_shop_email_unique").on(t.shopId, t.email),
+  shopIdx: index("shop_buyer_shop_idx").on(t.shopId),
+  emailIdx: index("shop_buyer_email_idx").on(t.email),
+  statusIdx: index("shop_buyer_status_idx").on(t.status),
+}));
+
+export const shopBuyerSessions = mysqlTable("shop_buyer_sessions", {
+  id: serial("id").primaryKey(),
+  accountId: bigint("account_id", { mode: "number", unsigned: true }).references(() => shopBuyerAccounts.id, { onDelete: "cascade" }).notNull(),
+  shopId: bigint("shop_id", { mode: "number", unsigned: true }).references(() => shops.id, { onDelete: "cascade" }).notNull(),
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => ({
+  tokenIdx: index("shop_buyer_session_token_idx").on(t.token),
+  accountIdx: index("shop_buyer_session_account_idx").on(t.accountId),
+  shopIdx: index("shop_buyer_session_shop_idx").on(t.shopId),
+}));
+
 // ===================== REPORTS =====================
 export const reports = mysqlTable("reports", {
   id: serial("id").primaryKey(),
