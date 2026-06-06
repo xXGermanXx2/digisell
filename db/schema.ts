@@ -416,6 +416,26 @@ export const shopSettings = mysqlTable("shop_settings", {
   s3Region: varchar("s3_region", { length: 50 }),
   s3AccessKey: varchar("s3_access_key", { length: 255 }),
   s3SecretKey: varchar("s3_secret_key", { length: 255 }),
+  // Security / Fraud Prevention
+  captchaEnabled: boolean("captcha_enabled").notNull().default(false),
+  captchaProvider: mysqlEnum("captcha_provider", ["none", "hcaptcha", "turnstile"]).notNull().default("none"),
+  captchaSiteKey: varchar("captcha_site_key", { length: 255 }),
+  captchaSecretKey: varchar("captcha_secret_key", { length: 255 }),
+  vpnProxyDetectionEnabled: boolean("vpn_proxy_detection_enabled").notNull().default(false),
+  vpnProxyProvider: mysqlEnum("vpn_proxy_provider", ["none", "ipapi", "ipqualityscore", "abstractapi"]).notNull().default("none"),
+  vpnProxyApiKey: varchar("vpn_proxy_api_key", { length: 255 }),
+  vpnProxyBlockThreshold: int("vpn_proxy_block_threshold").notNull().default(80),
+  fingerprintingEnabled: boolean("fingerprinting_enabled").notNull().default(false),
+  fingerprintingMode: mysqlEnum("fingerprinting_mode", ["passive", "strict"]).notNull().default("passive"),
+  fingerprintingSalt: varchar("fingerprinting_salt", { length: 255 }),
+  // Monitoring / Backups
+  monitoringEnabled: boolean("monitoring_enabled").notNull().default(false),
+  monitoringMetricsToken: varchar("monitoring_metrics_token", { length: 255 }),
+  grafanaUrl: varchar("grafana_url", { length: 500 }),
+  prometheusScrapePath: varchar("prometheus_scrape_path", { length: 255 }).notNull().default("/api/metrics"),
+  automaticBackupsEnabled: boolean("automatic_backups_enabled").notNull().default(false),
+  backupScheduleCron: varchar("backup_schedule_cron", { length: 100 }).notNull().default("0 3 * * *"),
+  backupRetentionDays: int("backup_retention_days").notNull().default(14),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });
 

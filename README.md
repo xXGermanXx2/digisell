@@ -224,6 +224,8 @@ digisell/
 │   └── lib/
 │       ├── email.ts        # SMTP utility
 │       ├── captcha.ts      # CAPTCHA validation
+│       ├── fraud-detection.ts # VPN/proxy and fingerprint helpers
+│       ├── metrics.ts      # Prometheus metrics rendering
 │       ├── invoice-pdf.ts  # PDF generation
 │       ├── local-auth.ts   # JWT utilities
 │       ├── openapi.ts      # API documentation
@@ -240,8 +242,7 @@ digisell/
 ├── docker/                 # Docker configuration
 │   └── nginx/              # Nginx config with SSL
 ├── scripts/                # Utility scripts
-│   ├── backup.sh           # Database backup
-│   └── restore.sh          # Database restore
+│   └── create-production-backup.mjs # Production database backup with retention
 ├── Dockerfile              # Multi-stage production build
 ├── docker-compose.yml      # Production stack
 ├── docker-compose.dev.yml  # Development stack
@@ -253,13 +254,18 @@ digisell/
 
 ---
 
+
+### Admin Ops: Sicherheit, Monitoring und Backups
+
+Das Admin-Panel enthält nun konfigurierbare Einstellungen für **CAPTCHA** (hCaptcha/Cloudflare Turnstile), **VPN-/Proxy-Erkennung**, **Browser-Fingerprinting**, **Prometheus-Monitoring** und **automatische Datenbank-Backups**. Der Prometheus-kompatible Metrics-Endpunkt liegt unter `/api/metrics` und kann optional mit einem Metrics-Token geschützt werden. Datenbank-Backups können serverseitig mit `npm run backup:database` erzeugt und über externe Cron-Systeme wie Railway Cron, GitHub Actions oder einen Server-Cron geplant werden.
+
 ## Roadmap & TODO Tracking
 
 The project keeps its feature planning directly in version control so that implementation status, open follow-up work, and role-specific product requirements remain visible in GitHub. The two role-specific TODO documents are stored in the repository root and should be updated whenever related functionality changes.
 
 | File | Focus Area | Current Summary |
 |---|---|---|
-| [`ADMIN_TODO.md`](ADMIN_TODO.md) | Admin panel, moderation, analytics, security, system management, roles, and seller-side admin functions | 125 features are marked as complete, 6 items are marked as partially implemented because they require external APIs or infrastructure, and no admin features are currently marked as missing. |
+| [`ADMIN_TODO.md`](ADMIN_TODO.md) | Admin panel, moderation, analytics, security, system management, roles, and seller-side admin functions | 131 features are marked as complete, no items remain partially implemented, and no admin features are currently marked as missing. |
 | [`BUYER_DASHBOARD_TODO.md`](BUYER_DASHBOARD_TODO.md) | Buyer dashboard, order history, downloads, license keys, support tickets, account security, notifications, favorites, coupons, subscriptions, and buyer analytics | Core buyer functionality is marked as complete, important features are mostly implemented, and remaining work is concentrated around notifications, favorites, coupons, subscriptions, device/session management, and optional buyer API access. |
 
 The general project roadmap remains available in [`MY_TODO.md`](MY_TODO.md). Together, these files provide the main GitHub-visible planning layer for DigiSell and should be reviewed before larger feature work, refactors, or release preparation.

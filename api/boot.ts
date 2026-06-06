@@ -9,6 +9,7 @@ import { createOAuthCallbackHandler } from "./kimi/auth";
 import { Paths } from "@contracts/constants";
 import { getDb } from "./queries/connection";
 import { sql } from "drizzle-orm";
+import { renderPrometheusMetrics, validateMetricsToken } from "./lib/metrics";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
@@ -49,6 +50,14 @@ app.use("/api/trpc/*", async (c) => {
     router: appRouter,
     createContext,
   });
+});
+
+app.get("/api/metrics", async (c) => {
+  const token = c.req.query("token") ?? c.req.header("x-metrics-token");
+  const allowed = await validateMetricsToken(token);
+  if (!allowed) return c.text("metrics disabled or unauthorized", 403);
+  const body = await renderPrometheusMetrics();
+  return c.text(body, 200, { "Content-Type": "text/plain; version=0.0.4; charset=utf-8" });
 });
 
 // ── Migrations-Endpunkt ────────────────────────────────────────────────────
@@ -98,6 +107,31 @@ app.get("/api/run-migration", async (c) => {
     for (const [col, def] of orderColumns) {
       try { results.push(await addColumnIfMissing("orders", col, def)); }
       catch (e: any) { results.push(`ERROR: orders.${col}: ${e.message?.substring(0, 80)}`); }
+    }
+
+    const settingsColumns: [string, string][] = [
+      ["captcha_enabled", "BOOLEAN NOT NULL DEFAULT FALSE"],
+      ["captcha_provider", "ENUM('none','hcaptcha','turnstile') NOT NULL DEFAULT 'none'"],
+      ["captcha_site_key", "VARCHAR(255) NULL"],
+      ["captcha_secret_key", "VARCHAR(255) NULL"],
+      ["vpn_proxy_detection_enabled", "BOOLEAN NOT NULL DEFAULT FALSE"],
+      ["vpn_proxy_provider", "ENUM('none','ipapi','ipqualityscore','abstractapi') NOT NULL DEFAULT 'none'"],
+      ["vpn_proxy_api_key", "VARCHAR(255) NULL"],
+      ["vpn_proxy_block_threshold", "INT NOT NULL DEFAULT 80"],
+      ["fingerprinting_enabled", "BOOLEAN NOT NULL DEFAULT FALSE"],
+      ["fingerprinting_mode", "ENUM('passive','strict') NOT NULL DEFAULT 'passive'"],
+      ["fingerprinting_salt", "VARCHAR(255) NULL"],
+      ["monitoring_enabled", "BOOLEAN NOT NULL DEFAULT FALSE"],
+      ["monitoring_metrics_token", "VARCHAR(255) NULL"],
+      ["grafana_url", "VARCHAR(500) NULL"],
+      ["prometheus_scrape_path", "VARCHAR(255) NOT NULL DEFAULT '/api/metrics'"],
+      ["automatic_backups_enabled", "BOOLEAN NOT NULL DEFAULT FALSE"],
+      ["backup_schedule_cron", "VARCHAR(100) NOT NULL DEFAULT '0 3 * * *'"],
+      ["backup_retention_days", "INT NOT NULL DEFAULT 14"],
+    ];
+    for (const [col, def] of settingsColumns) {
+      try { results.push(await addColumnIfMissing("shop_settings", col, def)); }
+      catch (e: any) { results.push(`ERROR: shop_settings.${col}: ${e.message?.substring(0, 80)}`); }
     }
 
     results.push(...await ensureOperationalTables());

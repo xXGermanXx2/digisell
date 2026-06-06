@@ -1,8 +1,6 @@
-import { useState } from "react";
 import { trpc } from "@/providers/trpc";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Settings, Shield, Database, Activity, Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -26,8 +24,8 @@ export default function AdminSystem() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: "Status", value: health?.status ?? "—", icon: Activity, color: health?.status === "ok" ? "text-green-400" : "text-red-400" },
-            { label: "Datenbank", value: health?.database ?? "—", icon: Database, color: health?.database === "connected" ? "text-green-400" : "text-red-400" },
-            { label: "Redis", value: health?.redis ?? "—", icon: Shield, color: health?.redis === "connected" ? "text-green-400" : "text-yellow-400" },
+            { label: "Datenbank", value: health?.services?.database?.status === "ok" ? `${health.services.database.latencyMs}ms` : "error", icon: Database, color: health?.services?.database?.status === "ok" ? "text-green-400" : "text-red-400" },
+            { label: "CPU", value: health?.system?.cpuCount ? `${health.system.cpuCount} Cores` : "—", icon: Shield, color: "text-yellow-400" },
             { label: "Uptime", value: health?.uptime ? `${Math.floor(Number(health.uptime) / 60)}m` : "—", icon: RefreshCw, color: "text-blue-400" },
           ].map(({ label, value, icon: Icon, color }) => (
             <div key={label} className="bg-[#111827] rounded-xl border border-[#1E293B] p-4">

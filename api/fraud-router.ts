@@ -3,6 +3,7 @@ import { eq, and } from "drizzle-orm";
 import { createRouter, adminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { fraudRules } from "@db/schema";
+import { checkVpnProxy, createBrowserFingerprint } from "./lib/fraud-detection";
 
 export const fraudRouter = createRouter({
   list: adminQuery.query(async () => {
@@ -39,10 +40,16 @@ export const fraudRouter = createRouter({
       z.object({
         ip: z.string().optional(),
         email: z.string().optional(),
+        userAgent: z.string().optional(),
+        acceptLanguage: z.string().optional(),
+        platform: z.string().optional(),
+        timezone: z.string().optional(),
+        screen: z.string().optional(),
       })
     )
     .query(async ({ input }) => {
       const db = getDb();
+      const settings = await db.query.shopSettings.findFirst();
       const risks = [];
       let score = 0;
       
@@ -60,6 +67,36 @@ export const fraudRouter = createRouter({
         }
       }
       
+      if (input.ip) {
+        const vpnProxy = await checkVpnProxy(input.ip, {
+          enabled: settings?.vpnProxyDetectionEnabled,
+          provider: settings?.vpnProxyProvider as any,
+          apiKey: settings?.vpnProxyApiKey,
+          threshold: settings?.vpnProxyBlockThreshold,
+        });
+        if (vpnProxy.enabled && (vpnProxy.blocked || vpnProxy.reason === "missing-api-key")) {
+          risks.push({
+            type: "vpn_proxy",
+            value: input.ip,
+            reason: vpnProxy.reason ?? `Provider ${vpnProxy.provider}: Score ${vpnProxy.score}`,
+            provider: vpnProxy.provider,
+          });
+          score += vpnProxy.blocked ? Math.max(50, vpnProxy.score) : 10;
+        }
+      }
+
+      if (settings?.fingerprintingEnabled) {
+        const fingerprint = createBrowserFingerprint({
+          userAgent: input.userAgent,
+          acceptLanguage: input.acceptLanguage,
+          platform: input.platform,
+          timezone: input.timezone,
+          screen: input.screen,
+          salt: settings.fingerprintingSalt,
+        });
+        risks.push({ type: "fingerprint", value: fingerprint, reason: `Mode ${settings.fingerprintingMode ?? "passive"}` });
+      }
+
       if (input.email) {
         const emailRule = await db.query.fraudRules.findFirst({
           where: and(

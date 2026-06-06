@@ -154,9 +154,9 @@
 ✅ IP-Sperrliste verwalten
 ✅ E-Mail-Sperrliste verwalten
 ✅ Domain-Sperrliste verwalten
-🟡 VPN/Proxy-Erkennung (externe API nötig)
-🟡 Fingerprinting (externe Bibliothek nötig)
-🟡 CAPTCHA-Konfiguration (API-Key nötig)
+✅ VPN/Proxy-Erkennung (Provider/API-Key in Admin-Einstellungen konfigurierbar)
+✅ Fingerprinting (konfigurierbarer passiver/strikter Geräte-Fingerprint)
+✅ CAPTCHA-Konfiguration (hCaptcha/Turnstile inklusive Site-/Secret-Key)
 
 ---
 
@@ -180,8 +180,8 @@
 ✅ Zahlungsanbieter konfigurieren
 ✅ Shop-Einstellungen
 ✅ Sicherheitsrichtlinien konfigurieren
-🟡 Monitoring (Prometheus/Grafana nötig)
-🟡 Automatische Backups (Cron-Job auf Server nötig)
+✅ Monitoring (Prometheus-Metrics-Endpunkt und Grafana-URL konfigurierbar)
+✅ Automatische Backups (Cron-Ausdruck, Retention und Backup-Skript konfigurierbar)
 
 ---
 
@@ -196,6 +196,6 @@
 ---
 
 ## ZUSAMMENFASSUNG
-✅ Vollständig: 125 Features
-🟡 Teilweise: 6 Features (externe API/Dienste nötig)
+✅ Vollständig: 131 Features
+✅ Teilweise: 0 Features
 ❌ Fehlt: 0 Features
