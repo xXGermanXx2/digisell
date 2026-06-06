@@ -246,9 +246,23 @@ digisell/
 ├── docker-compose.yml      # Production stack
 ├── docker-compose.dev.yml  # Development stack
 ├── deploy.sh               # One-command deployment
-├── TODO.md                 # Feature status list
-└── ADMIN_TODO.md           # Admin panel feature status
+├── MY_TODO.md              # General platform roadmap and feature status
+├── ADMIN_TODO.md           # Admin panel feature status
+└── BUYER_DASHBOARD_TODO.md # Buyer dashboard feature status
 ```
+
+---
+
+## Roadmap & TODO Tracking
+
+The project keeps its feature planning directly in version control so that implementation status, open follow-up work, and role-specific product requirements remain visible in GitHub. The two role-specific TODO documents are stored in the repository root and should be updated whenever related functionality changes.
+
+| File | Focus Area | Current Summary |
+|---|---|---|
+| [`ADMIN_TODO.md`](ADMIN_TODO.md) | Admin panel, moderation, analytics, security, system management, roles, and seller-side admin functions | 125 features are marked as complete, 6 items are marked as partially implemented because they require external APIs or infrastructure, and no admin features are currently marked as missing. |
+| [`BUYER_DASHBOARD_TODO.md`](BUYER_DASHBOARD_TODO.md) | Buyer dashboard, order history, downloads, license keys, support tickets, account security, notifications, favorites, coupons, subscriptions, and buyer analytics | Core buyer functionality is marked as complete, important features are mostly implemented, and remaining work is concentrated around notifications, favorites, coupons, subscriptions, device/session management, and optional buyer API access. |
+
+The general project roadmap remains available in [`MY_TODO.md`](MY_TODO.md). Together, these files provide the main GitHub-visible planning layer for DigiSell and should be reviewed before larger feature work, refactors, or release preparation.
 
 ---
 
