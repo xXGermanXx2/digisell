@@ -1,6 +1,6 @@
 import { z } from "zod";
 import * as bcrypt from "bcryptjs";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { createRouter, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
@@ -8,6 +8,56 @@ import { shopBuyerAccounts, shopBuyerSessions, shops } from "@db/schema";
 import { Errors } from "@contracts/errors";
 
 const SESSION_TTL_DAYS = 30;
+
+let shopBuyerTablesReady: Promise<void> | null = null;
+
+async function ensureShopBuyerTables() {
+  if (!shopBuyerTablesReady) {
+    shopBuyerTablesReady = (async () => {
+      const db = getDb();
+
+      await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS \`shop_buyer_accounts\` (
+        \`id\` bigint unsigned NOT NULL AUTO_INCREMENT,
+        \`shop_id\` bigint unsigned NOT NULL,
+        \`email\` varchar(320) NOT NULL,
+        \`password_hash\` varchar(255) NOT NULL,
+        \`name\` varchar(255),
+        \`status\` enum('active','blocked','pending') NOT NULL DEFAULT 'active',
+        \`email_verified\` boolean NOT NULL DEFAULT false,
+        \`last_sign_in_at\` timestamp NULL,
+        \`created_at\` timestamp DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (\`id\`),
+        UNIQUE KEY \`shop_buyer_shop_email_unique\` (\`shop_id\`, \`email\`),
+        KEY \`shop_buyer_shop_idx\` (\`shop_id\`),
+        KEY \`shop_buyer_email_idx\` (\`email\`),
+        KEY \`shop_buyer_status_idx\` (\`status\`),
+        CONSTRAINT \`shop_buyer_accounts_shop_id_shops_id_fk\` FOREIGN KEY (\`shop_id\`) REFERENCES \`shops\`(\`id\`) ON DELETE cascade
+      )`));
+
+      await db.execute(sql.raw(`CREATE TABLE IF NOT EXISTS \`shop_buyer_sessions\` (
+        \`id\` bigint unsigned NOT NULL AUTO_INCREMENT,
+        \`account_id\` bigint unsigned NOT NULL,
+        \`shop_id\` bigint unsigned NOT NULL,
+        \`token\` varchar(128) NOT NULL,
+        \`expires_at\` timestamp NOT NULL,
+        \`created_at\` timestamp DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (\`id\`),
+        UNIQUE KEY \`shop_buyer_sessions_token_unique\` (\`token\`),
+        KEY \`shop_buyer_session_token_idx\` (\`token\`),
+        KEY \`shop_buyer_session_account_idx\` (\`account_id\`),
+        KEY \`shop_buyer_session_shop_idx\` (\`shop_id\`),
+        CONSTRAINT \`shop_buyer_sessions_account_id_accounts_id_fk\` FOREIGN KEY (\`account_id\`) REFERENCES \`shop_buyer_accounts\`(\`id\`) ON DELETE cascade,
+        CONSTRAINT \`shop_buyer_sessions_shop_id_shops_id_fk\` FOREIGN KEY (\`shop_id\`) REFERENCES \`shops\`(\`id\`) ON DELETE cascade
+      )`));
+    })().catch((error) => {
+      shopBuyerTablesReady = null;
+      throw error;
+    });
+  }
+
+  await shopBuyerTablesReady;
+}
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -26,6 +76,7 @@ async function getShopBySlug(slug: string) {
 
 async function resolveSession(shopSlug: string, token?: string) {
   if (!token) return null;
+  await ensureShopBuyerTables();
   const db = getDb();
   const shop = await getShopBySlug(shopSlug);
   const row = await db
@@ -75,6 +126,7 @@ export const shopBuyerAuthRouter = createRouter({
       password: z.string().min(8).max(128),
     }))
     .mutation(async ({ input }) => {
+      await ensureShopBuyerTables();
       const db = getDb();
       const shop = await getShopBySlug(input.shopSlug);
       const email = normalizeEmail(input.email);
@@ -108,6 +160,7 @@ export const shopBuyerAuthRouter = createRouter({
   login: publicQuery
     .input(z.object({ shopSlug: z.string().min(1), email: z.string().email(), password: z.string().min(1) }))
     .mutation(async ({ input }) => {
+      await ensureShopBuyerTables();
       const db = getDb();
       const shop = await getShopBySlug(input.shopSlug);
       const email = normalizeEmail(input.email);
@@ -133,6 +186,7 @@ export const shopBuyerAuthRouter = createRouter({
   logout: publicQuery
     .input(z.object({ shopSlug: z.string().min(1), token: z.string().optional() }))
     .mutation(async ({ input }) => {
+      await ensureShopBuyerTables();
       const db = getDb();
       const shop = await getShopBySlug(input.shopSlug);
       if (input.token) {
